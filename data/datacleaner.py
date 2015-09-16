@@ -51,7 +51,7 @@ def get_basic_HAT11_params():
 #     model_flux = m.light_curve(params)
 #     return model_flux
 
-def generate_model_lc_short(times, t0, depth, a, inc):
+def generate_fiducial_model_lc_short(times, t0, depth, a, inc):
     # LD parameters from Deming 2011 http://adsabs.harvard.edu/abs/2011ApJ...740...33D
     rp = depth**0.5
     exp_time = (1*u.min).to(u.day).value
@@ -312,13 +312,13 @@ class TransitLightCurve(LightCurve):
         initial_parameters = [2454605.89155 ,   0.003365,   1.51533972e+01,
                               8.88919811e+01]
         def minimize_this(p, times, fluxes, errors):
-            return np.sum(((generate_model_lc_short(times, *p) - fluxes)/errors)**2)
+            return np.sum(((generate_fiducial_model_lc_short(times, *p) - fluxes)/errors)**2)
         fit_result = optimize.fmin(minimize_this, initial_parameters,
                                    args=(self.times.jd, self.fluxes, self.errors),
                                    disp=False)
         p = fit_result#[0]#fit_result[0]
-        init_model = generate_model_lc_short(self.times.jd, *initial_parameters)
-        model_flux = generate_model_lc_short(self.times.jd, *p)
+        init_model = generate_fiducial_model_lc_short(self.times.jd, *initial_parameters)
+        model_flux = generate_fiducial_model_lc_short(self.times.jd, *p)
 
         if plots:
             plt.plot(self.times.jd, init_model, 'g')

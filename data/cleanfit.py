@@ -13,7 +13,7 @@ import batman
 import matplotlib.pyplot as plt
 import astropy.units as u
 
-def generate_model_lc_short(times, t0, depth, a, inc):
+def generate_model_lc_short(times, t0, depth, a, inc, u1, u2):
     # LD parameters from Deming 2011 http://adsabs.harvard.edu/abs/2011ApJ...740...33D
     rp = depth**0.5
     exp_time = (1*u.min).to(u.day).value # Short cadence
@@ -25,7 +25,7 @@ def generate_model_lc_short(times, t0, depth, a, inc):
     params.inc = inc #orbital inclination (in degrees)
     params.ecc = 0                      #eccentricity
     params.w = 90.                       #longitude of periastron (in degrees)
-    params.u = [0.6136, 0.1062]                #limb darkening coefficients
+    params.u = [u1, u2]                #limb darkening coefficients
     params.limb_dark = "quadratic"       #limb darkening model
 
     m = batman.TransitModel(params, times, supersample_factor=7,
@@ -39,9 +39,9 @@ def lnlike(theta, x, y, yerr):
     return -0.5*(np.sum((y-model)**2/yerr**2))
 
 def lnprior(theta, bestfitt0=2454605.89132):
-    t0, depth, a, inc = theta
+    t0, depth, a, inc, u1, u2 = theta
     if (0.001 < depth < 0.005 and 85 < inc < 90 and 12 < a < 18 and
-        bestfitt0-0.1 < t0 < bestfitt0+0.1):
+        bestfitt0-0.1 < t0 < bestfitt0+0.1 and 0.4 < u1 < 0.8 and 0.0 < u2 < 0.3):
         #0.5 < u1 < 0.7 and 0.0 < u2 < 0.2
         return 0.0
     return -np.inf
@@ -52,9 +52,9 @@ def lnprob(theta, x, y, yerr):
         return -np.inf
     return lp + lnlike(theta, x, y, yerr)
 
-def run_emcee(p0, x, y, yerr, n_steps, n_threads=4, burnin=0.1):
+def run_emcee(p0, x, y, yerr, n_steps, n_threads=4, burnin=0.4):
     ndim = len(p0)
-    nwalkers = 60
+    nwalkers = 80
     n_steps = int(n_steps)
     burnin = int(burnin*n_steps)
     pos = [p0 + 1e-3*np.random.randn(ndim) for i in range(nwalkers)]
@@ -69,7 +69,8 @@ def run_emcee(p0, x, y, yerr, n_steps, n_threads=4, burnin=0.1):
 
 def plot_triangle(samples):
     import triangle
-    fig = triangle.corner(samples, labels=["$t_0$", r"$\delta$", r"$a/R_s$", r"$i$"])#,
+    fig = triangle.corner(samples, labels=["$t_0$", r"$\delta$", r"$a/R_s$",
+                                           r"$i$", "$u_1$", "$u_2$"])#,
                           #truths=[m_true, b_true, np.log(f_true)])
     #fig.savefig("triangle.png")
     plt.show()

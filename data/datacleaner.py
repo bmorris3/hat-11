@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import shutil
 import batman
 from scipy import optimize
+import emcee
 
 def get_basic_HAT11_params():
     # http://exoplanets.org/detail/HAT-P-11_b
@@ -57,7 +58,7 @@ def generate_fiducial_model_lc_short(times, t0, depth, a, inc):
     exp_time = (1*u.min).to(u.day).value
     params = batman.TransitParams()
     params.t0 = t0                       #time of inferior conjunction
-    params.per = 4.8878162                      #orbital period
+    params.per = 4.8878018                      #orbital period
     params.rp = rp                      #planet radius (in units of stellar radii)
     params.a = a                       #semi-major axis (in units of stellar radii)
     params.inc = inc #orbital inclination (in degrees)
@@ -300,7 +301,7 @@ class TransitLightCurve(LightCurve):
             ax[1].plot(self.times.jd, self.fluxes, 'o')
             plt.show()
 
-    def fiducial_transit_fit(self, plots=False, params=params):
+    def fiducial_transit_fit(self, plots=False):
         # Determine cadence:
         typical_time_diff = np.median(np.diff(self.times.jd))*u.day
         exp_long = 30*u.min
@@ -325,7 +326,9 @@ class TransitLightCurve(LightCurve):
             plt.errorbar(self.times.jd, self.fluxes, self.errors, fmt='.')
             plt.plot(self.times.jd, model_flux, 'r')
             plt.show()
-        return np.sum((self.fluxes - model_flux)**2/self.errors**2)
+
+        chi2 = np.sum((self.fluxes - model_flux)**2/self.errors**2)
+        return p, chi2
 
     @classmethod
     def from_dir(cls, path):
@@ -339,7 +342,7 @@ class TransitLightCurve(LightCurve):
             name = path
         return cls(times, fluxes, errors, quarters=quarters, name=name)
 
-def combine_light_curves(light_curve_list, planet_parameters=params, name=None):
+def combine_light_curves(light_curve_list, name=None):
     """
     Phase fold transits
     """

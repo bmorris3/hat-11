@@ -350,4 +350,3 @@ def combine_light_curves(light_curve_list, name=None):
     times = Time(times, format='jd')
     return TransitLightCurve(times=times, fluxes=fluxes, errors=errors,
                       quarters=quarters, name=name)
-

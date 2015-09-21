@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import shutil
 import batman
 from scipy import optimize
-import emcee
 
 def get_basic_HAT11_params():
     # http://exoplanets.org/detail/HAT-P-11_b
@@ -32,27 +31,15 @@ def get_basic_HAT11_params():
     params.inclination = inclination
     return params
 
-# def generate_model_lc(p, times, exp_time):
-#     # LD parameters from Deming 2011 http://adsabs.harvard.edu/abs/2011ApJ...740...33D
-#     [t0, depth, a, inc] = p #, u1, u2] = p
-#     rp = depth**0.5
-#     params = batman.TransitParams()
-#     params.t0 = t0                       #time of inferior conjunction
-#     params.per = 4.8878162                      #orbital period
-#     params.rp = rp                      #planet radius (in units of stellar radii)
-#     params.a = a                       #semi-major axis (in units of stellar radii)
-#     params.inc = inc #orbital inclination (in degrees)
-#     params.ecc = 0                      #eccentricity
-#     params.w = 90.                       #longitude of periastron (in degrees)
-#     params.u = [0.6136, 0.1062]                #limb darkening coefficients
-#     params.limb_dark = "quadratic"       #limb darkening model
-#
-#     m = batman.TransitModel(params, times, supersample_factor=7,
-#                             exp_time=exp_time)
-#     model_flux = m.light_curve(params)
-#     return model_flux
+def T14b2aRsi(P, T14, b):
+    '''
+    Convert from duration and impact param to a/Rs and inclination
+    '''
+    i = np.arccos( ( (P/np.pi)*np.sqrt(1 - b**2)/(T14*b) )**-1 )
+    aRs = b/np.cos(i)
+    return aRs, np.degrees(i)
 
-def generate_fiducial_model_lc_short(times, t0, depth, a, inc):
+def generate_fiducial_model_lc_short(times, t0, depth, dur, b):
     # LD parameters from Deming 2011 http://adsabs.harvard.edu/abs/2011ApJ...740...33D
     rp = depth**0.5
     exp_time = (1*u.min).to(u.day).value
@@ -60,6 +47,9 @@ def generate_fiducial_model_lc_short(times, t0, depth, a, inc):
     params.t0 = t0                       #time of inferior conjunction
     params.per = 4.8878018                      #orbital period
     params.rp = rp                      #planet radius (in units of stellar radii)
+
+    a, inc = T14b2aRsi(params.per, dur, b)
+
     params.a = a                       #semi-major axis (in units of stellar radii)
     params.inc = inc #orbital inclination (in degrees)
     params.ecc = 0                      #eccentricity
@@ -309,9 +299,8 @@ class TransitLightCurve(LightCurve):
         exp_time = (exp_long if np.abs(typical_time_diff - exp_long) < 1*u.min
                     else exp_short).to(u.day).value
 
-        # [t0, rp, a, inc]
-        initial_parameters = [2454605.89155 ,   0.003365,   1.51533972e+01,
-                              8.88919811e+01]
+        # [t0, rp, dur, b]
+        initial_parameters = [2454605.89155, 0.003365, 0.092, 0.307]
         def minimize_this(p, times, fluxes, errors):
             return np.sum(((generate_fiducial_model_lc_short(times, *p) - fluxes)/errors)**2)
         fit_result = optimize.fmin(minimize_this, initial_parameters,

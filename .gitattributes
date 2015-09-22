@@ -1,0 +1,4 @@
+data/hat11_for_stsp/errors.npy filter=lfs diff=lfs merge=lfs -text
+data/hat11_for_stsp/fluxes.npy filter=lfs diff=lfs merge=lfs -text
+data/hat11_for_stsp/quarters.npy filter=lfs diff=lfs merge=lfs -text
+data/hat11_for_stsp/times.npy filter=lfs diff=lfs merge=lfs -text

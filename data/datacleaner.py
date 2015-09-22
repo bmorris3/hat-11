@@ -431,7 +431,6 @@ def combine_short_and_long_cadence(short_cadence_transit_light_curves_list,
     all_errors = np.concatenate([all_errors] + [t.errors for t in scaled_short_transits])
     all_quarters = np.concatenate([all_quarters] + [t.quarters for t in scaled_short_transits])
 
-
     # Sort by times
     time_sort = np.argsort(all_times)
     all_times, all_fluxes, all_errors, all_quarters = [arr[time_sort]

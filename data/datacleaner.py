@@ -83,7 +83,7 @@ class LightCurve(object):
         self.quarters = quarters
         self.name = name
 
-    def plot(self, quarter=None, plot_date=False, save_path=None, show=True):
+    def plot(self, ax=None, quarter=None, plot_date=False, show=True, color='b'):
         """
         Plot light curve
         """
@@ -97,21 +97,19 @@ class LightCurve(object):
         else:
             mask = np.ones_like(self.fluxes).astype(bool)
 
-        fig, ax = plt.subplots(figsize=(8,8))
+        #fig, ax = plt.subplots(figsize=(8,8))
+        if ax is None:
+            ax = plt.gca()
 
         if plot_date:
-            ax.plot_date(self.times[mask].plot_date, self.fluxes[mask], 'o')
+            ax.plot_date(self.times[mask].plot_date, self.fluxes[mask], 'o',
+                         color=color)
         else:
-            ax.plot(self.times[mask].jd, self.fluxes[mask], 'o')
+            ax.plot(self.times[mask].jd, self.fluxes[mask], 'o', color=color)
         ax.set(xlabel='Time', ylabel='Flux', title=self.name)
-
-        if save_path is not None:
-            fig.savefig(save_path, bbox_inches='tight')
 
         if show:
             plt.show()
-        else:
-            plt.close()
 
     def save_to(self, path, overwrite=False):
         """
@@ -194,15 +192,14 @@ class LightCurve(object):
         if rename is not None:
             self.name = rename
 
-    def mask_out_of_transit(self, params=params):
+    def mask_out_of_transit(self, params=params, oot_duration_fraction=0.25):
         """
         Mask out the out-of-transit light curve based on transit parameters
         """
         # Fraction of one duration to capture out of transit
-        get_oot_duration_fraction = 0.25
         phased = (self.times.jd - params.t0) % params.per
-        near_transit = ((phased < params.duration*(0.5 + get_oot_duration_fraction)) |
-                        (phased > params.per - params.duration*(0.5 + get_oot_duration_fraction)))
+        near_transit = ((phased < params.duration*(0.5 + oot_duration_fraction)) |
+                        (phased > params.per - params.duration*(0.5 + oot_duration_fraction)))
         sort_by_time = np.argsort(self.times[near_transit].jd)
         return dict(times=self.times[near_transit][sort_by_time],
                     fluxes=self.fluxes[near_transit][sort_by_time],
@@ -217,6 +214,7 @@ class LightCurve(object):
         """
         time_diffs = np.diff(sorted(self.times.jd))
         diff_between_transits = params.per/2.
+        print(time_diffs.mean(), np.median(time_diffs), diff_between_transits)
         split_inds = np.argwhere(time_diffs > diff_between_transits) + 1
 
         split_ind_pairs = [[0, split_inds[0][0]]]
@@ -242,6 +240,22 @@ class LightCurve(object):
             plt.show()
 
         return transit_light_curves
+    #
+    # def insert_short_cadence(self):
+    #     """
+    #     Fit an O(1) polynomial to the out of transit portions of a long
+    #     cadence light curve.
+    #     """
+    #     get_oot_duration_fraction = 0.25
+    #     phased = (self.times.jd - params.t0) % params.per
+    #     near_transit = ((phased < params.duration*(0.5 + get_oot_duration_fraction)) |
+    #                     (phased > params.per - params.duration*(0.5 + get_oot_duration_fraction)))
+    #
+    #     sort_by_time = np.argsort(self.times[near_transit].jd)
+    #     t = self.times.jd[near_transit][sort_by_time]
+    #     f = self.fluxes[near_transit][sort_by_time]
+    #     e = self.errors[near_transit][sort_by_time]
+
 
 
 class TransitLightCurve(LightCurve):
@@ -258,38 +272,69 @@ class TransitLightCurve(LightCurve):
         self.errors = errors
         self.quarters = quarters
         self.name = name
+        self.rescaled = False
 
-    def remove_linear_baseline(self, plots=False):
+    def fit_linear_baseline(self, cadence=1*u.min, return_near_transit=False,
+                            plots=False):
         """
         Find OOT portions of transit light curve using similar method to
-        `LightCurve.mask_out_of_transit`, fit linear baseline to OOT,
-        divide whole light curve by that fit
+        `LightCurve.mask_out_of_transit`, fit linear baseline to OOT
         """
+        cadence_buffer = cadence.to(u.day).value
         get_oot_duration_fraction = 0
         phased = (self.times.jd - params.t0) % params.per
-        near_transit = ((phased < params.duration*(0.5 + get_oot_duration_fraction)) |
-                        (phased > params.per - params.duration*(0.5 + get_oot_duration_fraction)))
-
-        if plots:
-            fig, ax = plt.subplots(1, 2, figsize=(15,6))
-            ax[0].axhline(1, ls='--', color='k')
-            ax[0].plot(self.times.jd, self.fluxes, 'o')
-            ax[0].plot(self.times.jd[near_transit], self.fluxes[near_transit], 'ro')
-            ax[0].set_title('before trend removal')
+        near_transit = ((phased < params.duration*(0.5 + get_oot_duration_fraction) + cadence_buffer) |
+                        (phased > params.per - params.duration*(0.5 + get_oot_duration_fraction) - cadence_buffer))
 
         # Remove linear baseline trend
         order = 1
         linear_baseline = np.polyfit(self.times.jd[-near_transit],
                                      self.fluxes[-near_transit], order)
         linear_baseline_fit = np.polyval(linear_baseline, self.times.jd)
+
+        if plots:
+            fig, ax = plt.subplots(1, 2, figsize=(15,6))
+            ax[0].axhline(1, ls='--', color='k')
+            ax[0].plot(self.times.jd, linear_baseline_fit, 'r')
+            ax[0].plot(self.times.jd, self.fluxes, 'bo')
+            plt.show()
+
+        if return_near_transit:
+            return linear_baseline, near_transit
+        else:
+            return linear_baseline
+
+    def remove_linear_baseline(self, plots=False, cadence=1*u.min):
+        """
+        Find OOT portions of transit light curve using similar method to
+        `LightCurve.mask_out_of_transit`, fit linear baseline to OOT,
+        divide whole light curve by that fit.
+        """
+
+        linear_baseline, near_transit = self.fit_linear_baseline(cadence=cadence,
+                                                                 return_near_transit=True)
+        linear_baseline_fit = np.polyval(linear_baseline, self.times.jd)
         self.fluxes =  self.fluxes/linear_baseline_fit
         self.errors = self.errors/linear_baseline_fit
 
         if plots:
+            fig, ax = plt.subplots(1, 2, figsize=(15,6))
+            ax[0].axhline(1, ls='--', color='k')
+            ax[0].plot(self.times.jd, self.fluxes, 'o')
+            #ax[0].plot(self.times.jd[near_transit], self.fluxes[near_transit], 'ro')
+            ax[0].set_title('before trend removal')
+
             ax[1].set_title('after trend removal')
             ax[1].axhline(1, ls='--', color='k')
             ax[1].plot(self.times.jd, self.fluxes, 'o')
             plt.show()
+
+    def scale_by_baseline(self, linear_baseline_params):
+        if not self.rescaled:
+            scaling_vector = np.polyval(linear_baseline_params, self.times.jd)
+            self.fluxes *= scaling_vector
+            self.errors *= scaling_vector
+            self.rescaled = True
 
     def fiducial_transit_fit(self, plots=False):
         # Determine cadence:
@@ -299,7 +344,7 @@ class TransitLightCurve(LightCurve):
         exp_time = (exp_long if np.abs(typical_time_diff - exp_long) < 1*u.min
                     else exp_short).to(u.day).value
 
-        # [t0, rp, dur, b]
+        # [t0, depth, dur, b]
         initial_parameters = [2454605.89155, 0.003365, 0.092, 0.307]
         def minimize_this(p, times, fluxes, errors):
             return np.sum(((generate_fiducial_model_lc_short(times, *p) - fluxes)/errors)**2)
@@ -331,9 +376,73 @@ class TransitLightCurve(LightCurve):
             name = path
         return cls(times, fluxes, errors, quarters=quarters, name=name)
 
-def combine_light_curves(light_curve_list, name=None):
+def combine_short_and_long_cadence(short_cadence_transit_light_curves_list,
+                                   long_cadence_transit_light_curves_list,
+                                   long_cadence_light_curve, name=None):
     """
-    Phase fold transits
+    Find the linear baseline in the out of transit portions of the long cadence
+    light curves in ``long_cadence_transit_light_curves_list``. Scale each
+    short cadence light curve by that scaling factor.
+
+    Cut out all transits from the ``long_cadence_light_curve``, and leave
+    enough time before/after the first short-cadence points near transit to
+    ensure no overlapping exposure times.
+
+    Insert the normalized short cadence light curves from
+    ``short_cadence_light_curve_list`` into the time series.
+    """
+    # Find linear baseline near transits in long cadence
+    linear_baseline_params = [transit.fit_linear_baseline(cadence=30*u.min)
+                              for transit in long_cadence_transit_light_curves_list]
+
+    # Find the corresponding short cadence transit for each long cadence baseline
+    # fit, renormalize that short cadence transit accordingly
+    scaled_short_transits = []
+    for short_transit in short_cadence_transit_light_curves_list:
+        for long_transit, baseline_params in zip(long_cadence_transit_light_curves_list, linear_baseline_params):
+            if abs(long_transit.times.jd.mean() - short_transit.times.jd.mean()) < 0.1:
+                short_transit.scale_by_baseline(baseline_params)
+                scaled_short_transits.append(short_transit)
+
+    # Break out all times, fluxes, errors quarters, and weed out those from the
+    # long cadence light curve that overlap with the short cadence data
+    all_times = long_cadence_light_curve.times.jd
+    all_fluxes = long_cadence_light_curve.fluxes
+    all_errors = long_cadence_light_curve.errors
+    all_quarters = long_cadence_light_curve.quarters
+
+    remove_mask = np.zeros(len(all_times), dtype=bool)
+    short_cadence_exp_time = (30*u.min).to(u.day).value
+    for scaled_short_transit in scaled_short_transits:
+        min_t = scaled_short_transit.times.jd.min() - short_cadence_exp_time
+        max_t = scaled_short_transit.times.jd.max() + short_cadence_exp_time
+        overlapping_times = (all_times > min_t) & (all_times < max_t)
+        remove_mask |= overlapping_times
+
+    remove_indices = np.arange(len(all_times))[remove_mask]
+    all_times, all_fluxes, all_errors, all_quarters = [np.delete(arr, remove_indices)
+                                                       for arr in [all_times, all_fluxes, all_errors, all_quarters]]
+
+    # Insert the renormalized short cadence data into the pruned long cadence
+    # data, return as `LightCurve` object
+
+    all_times = np.concatenate([all_times] + [t.times.jd for t in scaled_short_transits])
+    all_fluxes = np.concatenate([all_fluxes] + [t.fluxes for t in scaled_short_transits])
+    all_errors = np.concatenate([all_errors] + [t.errors for t in scaled_short_transits])
+    all_quarters = np.concatenate([all_quarters] + [t.quarters for t in scaled_short_transits])
+
+
+    # Sort by times
+    time_sort = np.argsort(all_times)
+    all_times, all_fluxes, all_errors, all_quarters = [arr[time_sort]
+                                                       for arr in [all_times, all_fluxes, all_errors, all_quarters]]
+
+    return LightCurve(times=all_times, fluxes=all_fluxes, errors=all_errors,
+                      quarters=all_quarters, name=name)
+
+def concatenate_transit_light_curves(light_curve_list, name=None):
+    """
+    Combine multiple transit light curves into one `TransitLightCurve` object
     """
     times = []
     fluxes = []

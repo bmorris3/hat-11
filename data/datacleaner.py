@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import shutil
 import batman
 from scipy import optimize
+from gatspy.periodic import LombScargleFast
 
 def get_basic_HAT11_params():
     # http://exoplanets.org/detail/HAT-P-11_b
@@ -192,7 +193,7 @@ class LightCurve(object):
         if rename is not None:
             self.name = rename
 
-    def mask_out_of_transit(self, params=params, oot_duration_fraction=0.25):
+    def mask_out_of_transit(self, params=params, oot_duration_fraction=0.25, flip=False):
         """
         Mask out the out-of-transit light curve based on transit parameters
         """
@@ -200,11 +201,17 @@ class LightCurve(object):
         phased = (self.times.jd - params.t0) % params.per
         near_transit = ((phased < params.duration*(0.5 + oot_duration_fraction)) |
                         (phased > params.per - params.duration*(0.5 + oot_duration_fraction)))
+        if flip: 
+            near_transit = -near_transit
         sort_by_time = np.argsort(self.times[near_transit].jd)
         return dict(times=self.times[near_transit][sort_by_time],
                     fluxes=self.fluxes[near_transit][sort_by_time],
                     errors=self.errors[near_transit][sort_by_time],
                     quarters=self.quarters[near_transit][sort_by_time])
+
+    def mask_in_transit(self, params=params, oot_duration_fraction=0.25):
+        return self.mask_out_of_transit(params=params, oot_duration_fraction=oot_duration_fraction,
+                                        flip=True)
 
     def get_transit_light_curves(self, params=params, plots=False):
         """
@@ -375,6 +382,9 @@ class TransitLightCurve(LightCurve):
         else:
             name = path
         return cls(times, fluxes, errors, quarters=quarters, name=name)
+
+    
+
 
 def combine_short_and_long_cadence(short_cadence_transit_light_curves_list,
                                    long_cadence_transit_light_curves_list,

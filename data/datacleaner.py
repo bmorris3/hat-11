@@ -247,7 +247,18 @@ class LightCurve(object):
             plt.show()
 
         return transit_light_curves
-    #
+
+    def get_available_quarters(self):
+        return list(set(self.quarters))
+
+    def get_quarter(self, quarter):
+        this_quarter = self.quarters == quarter
+        return LightCurve(times=self.times[this_quarter],
+                          fluxes=self.fluxes[this_quarter],
+                          errors=self.errors[this_quarter],
+                          quarters=self.quarters[this_quarter],
+                          name=self.name + '_quarter_{0}'.format(quarter))
+
     # def insert_short_cadence(self):
     #     """
     #     Fit an O(1) polynomial to the out of transit portions of a long

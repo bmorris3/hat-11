@@ -221,7 +221,6 @@ class LightCurve(object):
         """
         time_diffs = np.diff(sorted(self.times.jd))
         diff_between_transits = params.per/2.
-        print(time_diffs.mean(), np.median(time_diffs), diff_between_transits)
         split_inds = np.argwhere(time_diffs > diff_between_transits) + 1
 
         split_ind_pairs = [[0, split_inds[0][0]]]

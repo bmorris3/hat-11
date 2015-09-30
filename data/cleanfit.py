@@ -114,3 +114,35 @@ def plot_triangle(samples):
         fig = triangle.corner(samples, labels=["$t_0$", r"depth", r"duration",
                                                r"$b$", "$q_1$", "$q_2$", "$q_3$", "$q_4$"])
     plt.show()
+
+def print_emcee_results(samples):
+    if samples.shape[1] == 6:
+        labels = ["t_0", r"depth", r"duration",  r"b", "q_1", "q_2"]
+    elif samples.shape[1] == 8:
+        labels = ["t_0", r"depth", r"duration", r"b", "q_1", "q_2",
+                  "q_3", "q_4"]
+
+    all_results = ""
+    for i, label in enumerate(labels):
+        mid, minus, plus = np.percentile(samples[:,i], [50, 16, 84])
+        lower = mid - minus
+        upper = plus - mid
+
+        if i==0:
+            latex_string = "{0}: {{{1}}}_{{-{2:0.6f}}}^{{+{3:0.6f}}} \\\\".format(label, mid, lower, upper)
+        elif i==1:
+            latex_string = "{0}: {{{1:.5f}}}_{{-{2:.5f}}}^{{+{3:.5f}}} \\\\".format(label, mid, lower, upper)
+        elif i==2:
+            latex_string = "{0}: {{{1:.04f}}}_{{-{2:.04f}}}^{{+{3:.04f}}} \\\\".format(label, mid, lower, upper)
+        elif i==3:
+            latex_string = "{0}: {{{1:.03f}}}_{{-{2:.03f}}}^{{+{3:.03f}}} \\\\".format(label, mid, lower, upper)
+        elif i==4:
+            latex_string = "{0}: {{{1:.2f}}}_{{-{2:.2f}}}^{{+{3:.2f}}} \\\\".format(label, mid, lower, upper)
+        elif i==5:
+            latex_string = "{0}: {{{1:.2f}}}_{{-{2:.2f}}}^{{+{3:.2f}}} \\\\".format(label, mid, lower, upper)
+        elif i==6:
+            latex_string = "{0}: {{{1:.2f}}}_{{-{2:.2f}}}^{{+{3:.2f}}} \\\\".format(label, mid, lower, upper)
+        elif i==7:
+            latex_string = "{0}: {{{1:.2f}}}_{{-{2:.2f}}}^{{+{3:.2f}}} \\\\".format(label, mid, lower, upper)
+        all_results += latex_string
+    return "$"+all_results+"$"

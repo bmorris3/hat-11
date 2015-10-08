@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import shutil
 import batman
 from scipy import optimize
-from gatspy.periodic import LombScargleFast
+from glob import glob
 
 def get_basic_HAT11_params():
     # http://exoplanets.org/detail/HAT-P-11_b
@@ -84,7 +84,9 @@ class LightCurve(object):
         self.quarters = quarters
         self.name = name
 
-    def plot(self, ax=None, quarter=None, plot_date=False, show=True, color='b'):
+    def plot(self, ax=None, quarter=None, show=True, phase=False,
+             plot_kwargs={'color':'b', 'marker':'o', 'lw':0},
+             params=params):
         """
         Plot light curve
         """
@@ -98,16 +100,19 @@ class LightCurve(object):
         else:
             mask = np.ones_like(self.fluxes).astype(bool)
 
-        #fig, ax = plt.subplots(figsize=(8,8))
         if ax is None:
             ax = plt.gca()
 
-        if plot_date:
-            ax.plot_date(self.times[mask].plot_date, self.fluxes[mask], 'o',
-                         color=color)
+        if phase:
+            x = (self.times.jd - params.t0)/params.per % 1
+            x[x > 0.5] -= 1
         else:
-            ax.plot(self.times[mask].jd, self.fluxes[mask], 'o', color=color)
-        ax.set(xlabel='Time', ylabel='Flux', title=self.name)
+            x = self.times.jd
+
+        ax.plot(x[mask], self.fluxes[mask],
+                **plot_kwargs)
+        ax.set(xlabel='Time' if not phase else 'Phase',
+               ylabel='Flux', title=self.name)
 
         if show:
             plt.show()
@@ -125,8 +130,8 @@ class LightCurve(object):
 
         if not os.path.exists(output_path):
             os.mkdir(output_path)
-            for attr in ['times', 'fluxes', 'errors', 'quarters']:
-                np.save(os.path.join(path, dirname, '{}.npy'.format(attr)),
+            for attr in ['times_jd', 'fluxes', 'errors', 'quarters']:
+                np.savetxt(os.path.join(path, dirname, '{0}.txt'.format(attr)),
                         getattr(self, attr))
 
     @classmethod
@@ -162,8 +167,8 @@ class LightCurve(object):
     @classmethod
     def from_dir(cls, path):
         """Load light curve from numpy save files in ``dir``"""
-        times, fluxes, errors, quarters = [np.load(os.path.join(path, '{}.npy'.format(attr)))
-                                           for attr in ['times', 'fluxes', 'errors', 'quarters']]
+        times, fluxes, errors, quarters = [np.loadtxt(os.path.join(path, '{0}.txt'.format(attr)))
+                                           for attr in ['times_jd', 'fluxes', 'errors', 'quarters']]
 
         if os.sep in path:
             name = path.split(os.sep)[-1]
@@ -201,7 +206,7 @@ class LightCurve(object):
         phased = (self.times.jd - params.t0) % params.per
         near_transit = ((phased < params.duration*(0.5 + oot_duration_fraction)) |
                         (phased > params.per - params.duration*(0.5 + oot_duration_fraction)))
-        if flip: 
+        if flip:
             near_transit = -near_transit
         sort_by_time = np.argsort(self.times[near_transit].jd)
         return dict(times=self.times[near_transit][sort_by_time],
@@ -258,22 +263,49 @@ class LightCurve(object):
                           quarters=self.quarters[this_quarter],
                           name=self.name + '_quarter_{0}'.format(quarter))
 
-    # def insert_short_cadence(self):
-    #     """
-    #     Fit an O(1) polynomial to the out of transit portions of a long
-    #     cadence light curve.
-    #     """
-    #     get_oot_duration_fraction = 0.25
-    #     phased = (self.times.jd - params.t0) % params.per
-    #     near_transit = ((phased < params.duration*(0.5 + get_oot_duration_fraction)) |
-    #                     (phased > params.per - params.duration*(0.5 + get_oot_duration_fraction)))
-    #
-    #     sort_by_time = np.argsort(self.times[near_transit].jd)
-    #     t = self.times.jd[near_transit][sort_by_time]
-    #     f = self.fluxes[near_transit][sort_by_time]
-    #     e = self.errors[near_transit][sort_by_time]
+    @property
+    def times_jd(self):
+        return self.times.jd
 
+    def save_split_at_stellar_rotations(self, path, stellar_rotation_period,
+                                        overwrite=False):
+        dirname = self.name
+        output_path = os.path.join(path, dirname)
+        self.times = Time(self.times)
 
+        if os.path.exists(output_path) and overwrite:
+            shutil.rmtree(output_path)
+
+        stellar_rotation_phase = ((self.times.jd - self.times.jd[0])*u.day %
+                                   stellar_rotation_period ) / stellar_rotation_period
+        phase_wraps = np.argwhere(stellar_rotation_phase[:-1] >
+                                  stellar_rotation_phase[1:])
+
+        split_times = np.split(self.times.jd, phase_wraps)
+        split_fluxes = np.split(self.fluxes, phase_wraps)
+        split_errors = np.split(self.errors, phase_wraps)
+        split_quarters = np.split(self.quarters, phase_wraps)
+
+        header = "JD Flux Uncertainty Quarter"
+        for i, t, f, e, q in zip(range(len(split_times)), split_times,
+                                 split_fluxes, split_errors, split_quarters):
+            np.savetxt(os.path.join(output_path, 'rotation{:02d}.txt'.format(i)),
+                       np.vstack([t, f, e, q]).T, header=header)
+
+def get_lightcurves_from_rotation_files(path):
+    """Load light curve from numpy savetxt files in directory ``path``"""
+    rotation_file_paths = glob(os.path.join(path, 'rotation*.txt'))
+    lcs = []
+    for f in rotation_file_paths:
+        times, fluxes, errors, quarters = np.loadtxt(f, unpack=True)
+
+        if os.sep in path:
+            name = path.split(os.sep)[-1]
+        else:
+            name = path
+        lcs.append(LightCurve(times, fluxes, errors, quarters=quarters,
+                              name=name))
+    return lcs
 
 class TransitLightCurve(LightCurve):
     """
@@ -383,17 +415,15 @@ class TransitLightCurve(LightCurve):
 
     @classmethod
     def from_dir(cls, path):
-        """Load light curve from numpy save files in ``dir``"""
-        times, fluxes, errors, quarters = [np.load(os.path.join(path, '{}.npy'.format(attr)))
-                                           for attr in ['times', 'fluxes', 'errors', 'quarters']]
+        """Load light curve from numpy save files in ``path``"""
+        times, fluxes, errors, quarters = [np.loadtxt(os.path.join(path, '{0}.txt'.format(attr)))
+                                           for attr in ['times_jd', 'fluxes', 'errors', 'quarters']]
 
         if os.sep in path:
             name = path.split(os.sep)[-1]
         else:
             name = path
         return cls(times, fluxes, errors, quarters=quarters, name=name)
-
-    
 
 
 def combine_short_and_long_cadence(short_cadence_transit_light_curves_list,

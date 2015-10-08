@@ -33,21 +33,28 @@ def aRsi2T14b(P, aRs, i):
     T14 = (P/np.pi)*np.sqrt(1-b**2)/aRs
     return T14, b
 
-def generate_model_lc_short(times, t0, depth, dur, b, q1, q2, q3=None, q4=None):
+
+ecosw = 0.261# ? 0.082
+esinw = 0.085# ? 0.043
+eccentricity = np.sqrt(ecosw**2 + esinw**2)
+omega = np.degrees(np.arccos(ecosw/eccentricity))
+
+def generate_model_lc_short(times, t0, depth, dur, b, q1, q2, q3=None, q4=None, P=4.8878018,
+                            e=eccentricity, w=omega):
     # LD parameters from Deming 2011 http://adsabs.harvard.edu/abs/2011ApJ...740...33D
     rp = depth**0.5
     exp_time = (1*u.min).to(u.day).value # Short cadence
     params = batman.TransitParams()
     params.t0 = t0                       #time of inferior conjunction
-    params.per = 4.8878018                     #orbital period
+    params.per = P                     #orbital period
     params.rp = rp                      #planet radius (in units of stellar radii)
 
     a, inc = T14b2aRsi(params.per, dur, b)
 
     params.a = a                       #semi-major axis (in units of stellar radii)
     params.inc = inc #orbital inclination (in degrees)
-    params.ecc = 0                      #eccentricity
-    params.w = 90.                       #longitude of periastron (in degrees)
+    params.ecc = e                      #eccentricity
+    params.w = w                       #longitude of periastron (in degrees)
 
     u1 = 2*np.sqrt(q1)*q2
     u2 = np.sqrt(q1)*(1 - 2*q2)
@@ -65,8 +72,48 @@ def generate_model_lc_short(times, t0, depth, dur, b, q1, q2, q3=None, q4=None):
     model_flux = m.light_curve(params)
     return model_flux
 
-def lnlike(theta, x, y, yerr):
-    model = generate_model_lc_short(x, *theta)
+
+def generate_model_lc_short_full(times, depth, dur, b, ecosw, esinw, q1, q2,
+                                 q3=None, q4=None, fixed_P=None, fixed_t0=None):
+    # LD parameters from Deming 2011 http://adsabs.harvard.edu/abs/2011ApJ...740...33D
+    rp = depth**0.5
+    exp_time = (1*u.min).to(u.day).value # Short cadence
+    params = batman.TransitParams()
+    params.t0 = fixed_t0                       #time of inferior conjunction
+    params.per = fixed_P                     #orbital period
+    params.rp = rp                      #planet radius (in units of stellar radii)
+
+    a, inc = T14b2aRsi(params.per, dur, b)
+
+    params.a = a                       #semi-major axis (in units of stellar radii)
+    params.inc = inc #orbital inclination (in degrees)
+
+    eccentricity = np.sqrt(ecosw**2 + esinw**2)
+    omega = np.degrees(np.arccos(ecosw/eccentricity))
+    params.ecc = eccentricity                      #eccentricity
+    params.w = omega                       #longitude of periastron (in degrees)
+
+    u1 = 2*np.sqrt(q1)*q2
+    u2 = np.sqrt(q1)*(1 - 2*q2)
+
+    if q3 is None and q4 is None:
+        params.u = [u1, u2]                #limb darkening coefficients
+        params.limb_dark = "quadratic"       #limb darkening model
+
+    else:
+        params.u = [q1, q2, q3, q4]
+        params.limb_dark = "nonlinear"
+
+    m = batman.TransitModel(params, times, supersample_factor=7,
+                            exp_time=exp_time)
+    model_flux = m.light_curve(params)
+    return model_flux
+
+
+#### Tools for fitting spotless transits
+
+def lnlike(theta, x, y, yerr, P):
+    model = generate_model_lc_short(x, *theta, P=P)
     return -0.5*(np.sum((y-model)**2/yerr**2))
 
 def lnprior(theta, bestfitt0=2454605.89132):
@@ -84,29 +131,119 @@ def lnprior(theta, bestfitt0=2454605.89132):
             return 0.0
     return -np.inf
 
-def lnprob(theta, x, y, yerr):
+def lnprob(theta, x, y, yerr, P):
     lp = lnprior(theta)
     if not np.isfinite(lp):
         return -np.inf
-    return lp + lnlike(theta, x, y, yerr)
+    return lp + lnlike(theta, x, y, yerr, P)
 
-def run_emcee(p0, x, y, yerr, n_steps, n_threads=4, burnin=0.4):
+def run_emcee(p0, x, y, yerr, n_steps, n_threads=4, burnin=0.4, P=4.8878018, n_walkers=50):
+    """Run emcee on the spotless transits"""
     ndim = len(p0)
-    nwalkers = 80
+    nwalkers = n_walkers
     n_steps = int(n_steps)
     burnin = int(burnin*n_steps)
     pos = [p0 + 1e-3*np.random.randn(ndim) for i in range(nwalkers)]
 
     pool = emcee.interruptible_pool.InterruptiblePool(processes=n_threads)
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, y, yerr),
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(x, y, yerr, P),
                                     pool=pool)
 
     sampler.run_mcmc(pos, n_steps)
     samples = sampler.chain[:, burnin:, :].reshape((-1, ndim))
     return samples, sampler
 
+
+## Tools for fitting for the transit ephemeris with fixed transit light curve
+
+def lnlike_ephemeris(theta, x, y, yerr, bestfit_transit_parameters):
+    depth, dur, b, q1, q2 = bestfit_transit_parameters
+    model = generate_model_lc_short(x, theta[0], depth, dur, b, q1, q2, P=theta[1])
+    return -0.5*(np.sum((y-model)**2/yerr**2))
+
+def lnprior_ephemeris(theta, bestfitt0=2454605.89132):
+    t0, P = theta
+    if (bestfitt0-0.1 < t0 < bestfitt0+0.1 and 4.5 < P < 5.5):
+        return 0.0
+    return -np.inf
+
+def lnprob_ephemeris(theta, x, y, yerr, bestfit_transit_parameters):
+    lp = lnprior_ephemeris(theta)
+    if not np.isfinite(lp):
+        return -np.inf
+    return lp + lnlike_ephemeris(theta, x, y, yerr, bestfit_transit_parameters)
+
+def run_emcee_ephemeris(p0, x, y, yerr, n_steps, bestfit_transit_parameters, n_threads=4, burnin=0.4, n_walkers=20):
+    """
+    Run emcee to calculate the ephemeris
+
+    bestfit_transit_parameters : list
+        depth, duration, b, q1, q2
+    """
+    ndim = len(p0)
+    nwalkers = int(n_walkers)
+    n_steps = int(n_steps)
+    burnin = int(burnin*n_steps)
+    pos = [p0 + 1e-5*np.random.randn(ndim) for i in range(nwalkers)]
+
+    pool = emcee.interruptible_pool.InterruptiblePool(processes=n_threads)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_ephemeris, args=(x, y, yerr, bestfit_transit_parameters),
+                                    pool=pool)
+
+    sampler.run_mcmc(pos, n_steps)
+    samples = sampler.chain[:, burnin:, :].reshape((-1, ndim))
+    return samples, sampler
+
+
+
+#### Tools for fitting spotless transits with ephemeris fixed
+
+def lnlike_fixed_ephem(theta, x, y, yerr):
+    model = generate_model_lc_short_full(x, *theta)
+    return -0.5*(np.sum((y-model)**2/yerr**2))
+
+def lnprior_fixed_ephem(theta, bestfitt0=2454605.89132):
+    if len(theta) == 6:
+        depth, dur, b, q1, q2 = theta
+        if (0.001 < depth < 0.005 and 0.05 < dur < 0.15 and 0 < b < 1 and
+            0.0 < q1 < 1.0 and 0.0 < q2 < 1.0):
+            return 0.0
+
+    elif len(theta) == 8:
+        t0, depth, dur, b, q1, q2, q3, q4 = theta
+        if (0.001 < depth < 0.005 and 0.05 < dur < 0.15 and 0 < b < 1 and
+            bestfitt0-0.1 < t0 < bestfitt0+0.1 and 0.0 < q1 < 1.0 and 0.0 < q2 < 1.0 and
+            0.0 < q3 < 1.0 and 0.0 < q4 < 1.0):
+            return 0.0
+    return -np.inf
+
+def lnprob_fixed_ephem(theta, x, y, yerr):
+    lp = lnprior_fixed_ephem(theta)
+    if not np.isfinite(lp):
+        return -np.inf
+    return lp + lnlike_fixed_ephem(theta, x, y, yerr)
+#
+# def run_emcee(p0, x, y, yerr, n_steps, n_threads=4, burnin=0.4):
+#     """Run emcee on the spotless transits"""
+#     ndim = len(p0)
+#     nwalkers = 80
+#     n_steps = int(n_steps)
+#     burnin = int(burnin*n_steps)
+#     pos = [p0 + 1e-3*np.random.randn(ndim) for i in range(nwalkers)]
+#
+#     pool = emcee.interruptible_pool.InterruptiblePool(processes=n_threads)
+#     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob_fixed_ephem, args=(x, y, yerr),
+#                                     pool=pool)
+#
+#     sampler.run_mcmc(pos, n_steps)
+#     samples = sampler.chain[:, burnin:, :].reshape((-1, ndim))
+#     return samples, sampler
+
+
 def plot_triangle(samples):
     import triangle
+    if samples.shape[1] == 2:
+        fig = triangle.corner(samples, labels=["$t_0$", "$P$"])
     if samples.shape[1] == 6:
         fig = triangle.corner(samples, labels=["$t_0$", r"depth", r"duration",
                                                r"$b$", "$q_1$", "$q_2$"])

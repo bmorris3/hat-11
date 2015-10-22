@@ -80,7 +80,11 @@ class LightCurve(object):
 
         self.times = times
         self.fluxes = fluxes
+        if self.times is not None and errors is None:
+            errors = np.zeros_like(self.fluxes) - 1
         self.errors = errors
+        if self.times is not None and quarters is None:
+            quarters = np.zeros_like(self.fluxes) - 1
         self.quarters = quarters
         self.name = name
 
@@ -117,7 +121,7 @@ class LightCurve(object):
         if show:
             plt.show()
 
-    def save_to(self, path, overwrite=False):
+    def save_to(self, path, overwrite=False, for_stsp=False):
         """
         Save times, fluxes, errors to new directory ``dirname`` in ``path``
         """
@@ -125,14 +129,23 @@ class LightCurve(object):
         output_path = os.path.join(path, dirname)
         self.times = Time(self.times)
 
-        if os.path.exists(output_path) and overwrite:
-            shutil.rmtree(output_path)
+        if not for_stsp:
+            if os.path.exists(output_path) and overwrite:
+                shutil.rmtree(output_path)
 
-        if not os.path.exists(output_path):
-            os.mkdir(output_path)
-            for attr in ['times_jd', 'fluxes', 'errors', 'quarters']:
-                np.savetxt(os.path.join(path, dirname, '{0}.txt'.format(attr)),
-                        getattr(self, attr))
+            if not os.path.exists(output_path):
+                os.mkdir(output_path)
+                for attr in ['times_jd', 'fluxes', 'errors', 'quarters']:
+                    np.savetxt(os.path.join(path, dirname, '{0}.txt'.format(attr)),
+                            getattr(self, attr))
+
+        else:
+            if not os.path.exists(output_path) or overwrite:
+                attrs = ['times_jd', 'fluxes', 'errors']
+                output_array = np.zeros((len(self.fluxes), len(attrs)), dtype=float)
+                for i, attr in enumerate(attrs):
+                    output_array[:, i] = getattr(self, attr)
+                np.savetxt(os.path.join(path, dirname+'.txt'), output_array)
 
     @classmethod
     def from_raw_fits(cls, fits_paths, name=None):
@@ -165,15 +178,23 @@ class LightCurve(object):
         return LightCurve(times, fluxes, errors, quarters=quarter, name=name)
 
     @classmethod
-    def from_dir(cls, path):
+    def from_dir(cls, path, for_stsp=False):
         """Load light curve from numpy save files in ``dir``"""
-        times, fluxes, errors, quarters = [np.loadtxt(os.path.join(path, '{0}.txt'.format(attr)))
-                                           for attr in ['times_jd', 'fluxes', 'errors', 'quarters']]
+        if not for_stsp:
+            times, fluxes, errors, quarters = [np.loadtxt(os.path.join(path, '{0}.txt'.format(attr)))
+                                               for attr in ['times_jd', 'fluxes', 'errors', 'quarters']]
+        else:
+            quarters = None
+            times, fluxes, errors = np.loadtxt(path, unpack=True)
 
         if os.sep in path:
             name = path.split(os.sep)[-1]
         else:
             name = path
+
+        if name.endswith('.txt'):
+            name = name[:-4]
+
         return cls(times, fluxes, errors, quarters=quarters, name=name)
 
     def normalize_each_quarter(self, rename=None, polynomial_order=2, plots=False):

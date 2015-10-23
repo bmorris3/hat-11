@@ -10,8 +10,8 @@ from astropy.constants import R_sun
 from astropy.coordinates import SphericalRepresentation, CartesianRepresentation
 from datacleaner import LightCurve
 
-#results_dir = os.path.abspath('../condor/tmp_long/')
-results_dir = os.path.abspath('../condor/tmp/')
+results_dir = os.path.abspath('../condor/tmp_long/')
+#results_dir = os.path.abspath('../condor/tmp/')
 
 files_in_dir = glob(os.path.join(results_dir, '*.txt'))
 
@@ -174,13 +174,19 @@ def plot_star(spots_spherical):
         axis.set_aspect('equal')
 
     # Set labels
-    positive_x.set(xlabel='$\hat{y}$', ylabel='$\hat{z}$') # title='+x',
+    positive_x.set(xlabel='$\hat{z}$', ylabel='$\hat{y}$') # title='+x',
     positive_x.xaxis.set_label_position("top")
-    negative_x.set(xlabel='$\hat{y}$', ylabel='$\hat{z}$') # title='-x',
+    positive_x.yaxis.set_label_position("right")
 
-    positive_y.set(xlabel='$\hat{x}$', ylabel='$\hat{z}$')
-    negative_y.set(xlabel='$\hat{x}$', ylabel='$\hat{z}$')
+    negative_x.set(xlabel='$\hat{z}$', ylabel='$\hat{y}$') # title='-x',
+    negative_x.xaxis.set_label_position("top")
+
+    positive_y.set(xlabel='$\hat{z}$', ylabel='$\hat{x}$')
+    positive_y.xaxis.set_label_position("top")
+
+    negative_y.set(xlabel='$\hat{z}$', ylabel='$\hat{x}$')
     negative_y.xaxis.set_label_position("top")
+    negative_y.yaxis.set_label_position("right")
 
     negative_z.set(xlabel='$\hat{y}$', ylabel='$\hat{x}$') # title='-z',
     negative_z.yaxis.set_label_position("right")
@@ -213,16 +219,17 @@ def plot_star(spots_spherical):
             axis.plot(latitude_lines.x[:, i], latitude_lines.y[:, i],
                       ls=':', color='silver')
         for axis in [positive_x, negative_x, positive_y, negative_y]:
-            axis.plot(latitude_lines.z[:, i], latitude_lines.y[:, i],
+            axis.plot(latitude_lines.y[:, i], latitude_lines.z[:, i],
                       ls=':', color='silver')
 
     for i in range(longitude_lines.shape[0]):
         for axis in [positive_z, negative_z]:
-            axis.plot(longitude_lines.x[i, :], longitude_lines.y[i, :],
+            axis.plot(longitude_lines.y[i, :], longitude_lines.x[i, :],
                     ls=':', color='silver')
         for axis in [positive_x, negative_x, positive_y, negative_y]:
-            axis.plot(longitude_lines.z[i, :], longitude_lines.y[i, :],
+            axis.plot(longitude_lines.y[i, :], longitude_lines.z[i, :],
                 ls=':', color='silver')
+
 
     # Plot spots
     spots_cart = spots_spherical.to_cartesian()
@@ -240,17 +247,17 @@ def plot_star(spots_spherical):
         below_y_plane = spots_y[:, spot_ind] < 0
         below_z_plane = spots_z[:, spot_ind] < 0
 
-        positive_x.plot(-spots_z[above_x_plane, spot_ind],
-                        spots_y[above_x_plane, spot_ind], '.', alpha=alpha)
+        positive_x.plot(spots_y[above_x_plane, spot_ind],
+                        spots_z[above_x_plane, spot_ind], '.', alpha=alpha)
 
-        negative_x.plot(-spots_z[below_x_plane, spot_ind],
-                        -spots_y[below_x_plane, spot_ind], '.', alpha=alpha)
+        negative_x.plot(-spots_y[below_x_plane, spot_ind],
+                        spots_z[below_x_plane, spot_ind], '.', alpha=alpha)
 
-        positive_y.plot(-spots_z[above_y_plane, spot_ind], 
-                        -spots_x[above_y_plane, spot_ind], '.', alpha=alpha)
+        positive_y.plot(-spots_x[above_y_plane, spot_ind],
+                        spots_z[above_y_plane, spot_ind], '.', alpha=alpha)
 
-        negative_y.plot(-spots_z[below_y_plane, spot_ind], 
-                        spots_x[below_y_plane, spot_ind], '.', alpha=alpha)
+        negative_y.plot(spots_x[below_y_plane, spot_ind],
+                        spots_z[below_y_plane, spot_ind], '.', alpha=alpha)
 
         positive_z.plot(spots_x[above_z_plane, spot_ind],
                         spots_y[above_z_plane, spot_ind], '.', alpha=alpha)

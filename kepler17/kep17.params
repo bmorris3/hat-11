@@ -1,0 +1,13 @@
+# machine readable file w/ parameters used for Kepler 17
+# references:
+# [1] http://adsabs.harvard.edu/abs/2011ApJS..197...14D
+
+1.4857108	Planet orbital period (days) [1]
+2455185.678035	Transit Ephem (BJD_utc) [1]
+0.09485		Transit duration (days) [1]
+12.25817669188	Star Rotation Period (days) [me, llc]
+0.13413993	Rp/Rstar [Leslie] (STSP wants this squared)
+0.1045441	impact parameter [Leslie]
+88.94560	orbital inclination [Leslie]
+5800		Teff (star) [1]
+1.113697	Stellar Density [Leslie]

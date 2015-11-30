@@ -73,7 +73,10 @@ class LightCurve(object):
     """
     def __init__(self, times=None, fluxes=None, errors=None, quarters=None, name=None):
 
-        if isinstance(times[0], Time) and isinstance(times, np.ndarray):
+        #if len(times) < 1:
+        #    raise ValueError("Input `times` have no length.")
+
+        if (isinstance(times[0], Time) and isinstance(times, np.ndarray)):
             times = Time(times)
         elif not isinstance(times, Time):
             times = Time(times, format='jd')
@@ -224,6 +227,7 @@ class LightCurve(object):
         Mask out the out-of-transit light curve based on transit parameters
         """
         # Fraction of one duration to capture out of transit
+
         phased = (self.times.jd - params.t0) % params.per
         near_transit = ((phased < params.duration*(0.5 + oot_duration_fraction)) |
                         (phased > params.per - params.duration*(0.5 + oot_duration_fraction)))
@@ -249,27 +253,31 @@ class LightCurve(object):
         diff_between_transits = params.per/2.
         split_inds = np.argwhere(time_diffs > diff_between_transits) + 1
 
-        split_ind_pairs = [[0, split_inds[0][0]]]
-        split_ind_pairs.extend([[split_inds[i][0], split_inds[i+1][0]]
-                                 for i in range(len(split_inds)-1)])
-        split_ind_pairs.extend([[split_inds[-1], len(self.times)]])
+        if len(split_inds) > 1:
 
-        transit_light_curves = []
-        counter = -1
-        for start_ind, end_ind in split_ind_pairs:
-            counter += 1
+            split_ind_pairs = [[0, split_inds[0][0]]]
+            split_ind_pairs.extend([[split_inds[i][0], split_inds[i+1][0]]
+                                     for i in range(len(split_inds)-1)])
+            split_ind_pairs.extend([[split_inds[-1], len(self.times)]])
+
+            transit_light_curves = []
+            counter = -1
+            for start_ind, end_ind in split_ind_pairs:
+                counter += 1
+                if plots:
+                    plt.plot(self.times.jd[start_ind:end_ind],
+                             self.fluxes[start_ind:end_ind], '.-')
+
+                parameters = dict(times=self.times[start_ind:end_ind],
+                                  fluxes=self.fluxes[start_ind:end_ind],
+                                  errors=self.errors[start_ind:end_ind],
+                                  quarters=self.quarters[start_ind:end_ind],
+                                  name=counter)
+                transit_light_curves.append(TransitLightCurve(**parameters))
             if plots:
-                plt.plot(self.times.jd[start_ind:end_ind],
-                         self.fluxes[start_ind:end_ind], '.-')
-
-            parameters = dict(times=self.times[start_ind:end_ind],
-                              fluxes=self.fluxes[start_ind:end_ind],
-                              errors=self.errors[start_ind:end_ind],
-                              quarters=self.quarters[start_ind:end_ind],
-                              name=counter)
-            transit_light_curves.append(TransitLightCurve(**parameters))
-        if plots:
-            plt.show()
+                plt.show()
+        else:
+            transit_light_curves = []
 
         return transit_light_curves
 

@@ -6,12 +6,10 @@ from utils import (STSPRun, get_transit_parameters)
 from glob import glob
 
 run_name = 'hat11'
-
-top_level_output_dir = os.path.join('/astro/store/scratch/tmp/bmmorris/stsp_20160124',
+executable_path = '/home/bmorris/git/STSP/stsp_20160125'
+top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',
                                     run_name)
-#light_curve_path = 'kepler17_whole.dat'
-#parameter_file_path = 'kep17.params'
-#p_orb, t_0, tdur, p_rot, Rp_Rs, impact, incl_orb, Teff, sden = get_transit_parameters(parameter_file_path)
+transit_paths = glob('/local-scratch/bmorris/hat11/hat11_single_transits/*.txt')
 
 planet_properties = dict(n_planets=1,
                          first_mid_transit_time=2454605.89154,
@@ -50,7 +48,6 @@ action_properties = dict(random_seed=74384338,
 
 run = STSPRun(parameter_file_path=None,
               light_curve_path=None,
-              executable_path='/astro/users/bmmorris/git/hat-11/osg/{0}.csh'.format(run_name),
               output_dir_path=top_level_output_dir,
               initial_dir=top_level_output_dir,
               condor_config_path=os.path.join('./', run_name+'.condor'),
@@ -60,6 +57,6 @@ run = STSPRun(parameter_file_path=None,
               action_properties=action_properties,
               n_restarts=2)
 
-run.copy_data_files(transit_paths=glob('/astro/users/bmmorris/git/hat-11/lightcurves/hat11_single_transits/*.txt'))
+run.copy_data_files(transit_paths=transit_paths)
 run.create_runs()
-run.make_condor_config()
+#run.make_condor_config()

@@ -6,7 +6,7 @@ import shutil
 import stat
 
 python_executable = 'python'
-falconer_path = '/astro/users/bmmorris/git/hat-11/osg/falconer.py'
+falconer_path = '/home/bmorris/git/hat-11/osg/falconer.py'
 
 config_file_text = """
 getenv = true

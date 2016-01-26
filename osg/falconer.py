@@ -113,11 +113,13 @@ def begin_new_run(output_dir_path, window_index, run_index, job_id=None):
         output_files = ["window{0:03d}_run{1:03d}_{2}.txt".format(window_index, run_index, out)
                         for out in ["mcmc", "lcbest", "finalparam", "_parambest"]]
 
+        input_files = [i for i in [seed_finalparam_source, dat_file, in_file] if i is not None]
+
         condor_in = dict(xsede_allocation_name = 'TG-AST150046',
             initial_directory = run_dir,
             stsp_executable = '/home/bmorris/git/STSP/stsp_login',
             dot_in_file = in_file,
-            transfer_input_files = ", ".join([seed_finalparam_source, dat_file, in_file]),
+            transfer_input_files = ", ".join(input_files),
             transfer_output_files = ", ".join(output_files),
             stdout_path = 'myout.txt',
             stderr_path = 'myerr.txt',

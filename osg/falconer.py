@@ -50,7 +50,8 @@ def find_windows_to_continue(output_dir_path):
 
             # If the current directory has its own finalparam.txt file, the run
             # has been completed
-            if os.path.exists(current_finalparam_path):
+            if (os.path.exists(current_finalparam_path) and
+                    os.path.getsize(current_finalparam_path) > 0):
                 completed_runs.append(run_id)
 
             # If the current directory doesn't have its own finalparam.txt file,

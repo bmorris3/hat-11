@@ -17,7 +17,7 @@ top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',
 
 condor_template = open('template.osg-xsede', 'r').read()
 condor_submit_path = 'condor_submit.osg-xsede'
-falconer_log = open('falconer_log.txt', 'wa')
+falconer_log_path = 'falconer_log.txt'
 
 def find_windows_to_continue(output_dir_path):
     """
@@ -129,7 +129,7 @@ def begin_new_run(output_dir_path, window_index, run_index):
         with open(condor_submit_path, 'w') as submit:
             submit.write(condor_template.format(**condor_in))
 
-        with falconer_log as fl:
+        with open(falconer_log_path, 'a') as fl:
             fl.write("Submitting: window{0:03d}_run{1:03d}\n".format(window_index, run_index))
 
         os.system('condor_submit {0}'.format(condor_submit_path))

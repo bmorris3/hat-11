@@ -34,15 +34,18 @@ stellar_properties = dict(mean_stellar_density=1.81004,
 
 spot_properties = dict(lightcurve_path=None,
                        flattened_flag=1,
-                       n_spots=4,
+                       n_spots=5,
                        fractional_spot_contrast=0.7
                        )
+
+n_hours = 4.0
+n_seconds = n_hours*60*60
 
 # For an unseeded run:
 action_properties = dict(random_seed=74384338,
                          a_scale=2.5,
-                         n_chains=20,
-                         n_steps=1000,
+                         n_chains=250,
+                         n_steps=-n_seconds,
                          calc_brightness=1
                          )
 

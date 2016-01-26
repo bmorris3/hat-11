@@ -93,6 +93,7 @@ def begin_new_run(output_dir_path, window_index, run_index, job_id=None):
                                 .format(window_index))
 
         # If run is seeded, grab seed from previous run:
+        seed_finalparam_source = None
         if run_index != 0:
             seed_finalparam_source = os.path.join(output_dir_path,
                                           "window{0:03d}/run{1:03d}/window{0:03d}_run{1:03d}_finalparam.txt"
@@ -104,7 +105,8 @@ def begin_new_run(output_dir_path, window_index, run_index, job_id=None):
 
             shutil.copy(seed_finalparam_source, seed_finalparam_dest)
 
-        print("started window{0:03d}/run{1:03d}".format(window_index, run_index))
+        print("paths to copy: {0}".format([seed_finalparam_source, dat_file, in_file]))
+        #print("started window{0:03d}/run{1:03d}".format(window_index, run_index))
     else:
         with open(initialized_path, 'a') as init:
             init.write('Another initialization attempted at {0}'.format(datetime.datetime.utcnow()))

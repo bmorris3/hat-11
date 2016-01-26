@@ -12,7 +12,7 @@ stsp_executable = "/home/bmorris/git/STSP/stsp_20160125"
 run_name = 'hat11'
 #top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',
 #                                    run_name)
-top_level_output_dir = os.path.join('/astro/store/scratch/tmp/bmmorris/stsp_20160124/',
+top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',
                                     run_name)
 def find_windows_to_continue(output_dir_path):
     """
@@ -117,5 +117,5 @@ random_integer = np.random.randint(len(available_windows))
 window_index, run_index = available_windows[0]#[random_integer]
 
 print("Now beginning: (window, run) = ({0}, {1})".format(window_index, run_index))
-
-#begin_new_run(top_level_output_dir, window_index, run_index, sys.argv[-1])
+print(available_windows)
+begin_new_run(top_level_output_dir, window_index, run_index, sys.argv[-1])

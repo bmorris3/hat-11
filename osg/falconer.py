@@ -14,7 +14,7 @@ run_name = 'hat11'
 #                                    run_name)
 top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',
                                     run_name)
-
+os.chdir('/home/bmorris/git/hat-11/osg')
 condor_template = open('template.osg-xsede', 'r').read()
 condor_submit_path = 'condor_submit.osg-xsede'
 falconer_log_path = 'falconer_log.txt'

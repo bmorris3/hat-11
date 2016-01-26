@@ -39,7 +39,7 @@ spot_properties = dict(lightcurve_path=None,
                        )
 
 n_hours = 4.0
-n_seconds = n_hours*60*60
+n_seconds = int(n_hours*60*60)
 
 # For an unseeded run:
 action_properties = dict(random_seed=74384338,
@@ -58,7 +58,7 @@ run = STSPRun(parameter_file_path=None,
               stellar_properties=stellar_properties,
               spot_properties=spot_properties,
               action_properties=action_properties,
-              n_restarts=2)
+              n_restarts=5)
 
 run.copy_data_files(transit_paths=transit_paths)
 run.create_runs()

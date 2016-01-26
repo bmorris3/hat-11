@@ -14,6 +14,9 @@ run_name = 'hat11'
 #                                    run_name)
 top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',
                                     run_name)
+
+condor_template = open('template.osg-xsede', 'r')
+
 def find_windows_to_continue(output_dir_path):
     """
     Parameters
@@ -74,11 +77,11 @@ def begin_new_run(output_dir_path, window_index, run_index, job_id=None):
     print(os.uname())
     print("Job ID: {0}".format(job_id))
 
-    scratch_run_dir = os.path.join(output_dir_path,
+    run_dir = os.path.join(output_dir_path,
                                     "window{0:03d}/run{1:03d}/"
                                     .format(window_index, run_index))
 
-    initialized_path = os.path.join(scratch_run_dir, "initialized.txt"
+    initialized_path = os.path.join(run_dir, "initialized.txt"
                                     .format(window_index, run_index))
 
     if not os.path.exists(initialized_path):
@@ -105,11 +108,31 @@ def begin_new_run(output_dir_path, window_index, run_index, job_id=None):
 
             shutil.copy(seed_finalparam_source, seed_finalparam_dest)
 
-        print("paths to copy: {0}".format([seed_finalparam_source, dat_file, in_file]))
-        #print("started window{0:03d}/run{1:03d}".format(window_index, run_index))
+
+
+        output_files = ["window{0:03d}_run{1:03d}_{2}.txt".format(window_index, run_index, out)
+                        for out in ["mcmc", "lcbest", "finalparam", "_parambest"]]
+
+        condor_in = dict(xsede_allocation_name = 'TG-AST150046',
+            initial_directory = run_dir,
+            stsp_executable = '/home/bmorris/git/STSP/stsp_login',
+            dot_in_file = in_file,
+            transfer_input_files = ", ".join([seed_finalparam_source, dat_file, in_file]),
+            transfer_output_files = ", ".join(output_files),
+            stdout_path = 'myout.txt',
+            stderr_path = 'myerr.txt',
+            log_path = 'mylog.txt')
+
+        with open('condor_submit.osg-xsede', 'w') as submit:
+            submit.write(condor_template.format(**condor_in))
+
     else:
         with open(initialized_path, 'a') as init:
             init.write('Another initialization attempted at {0}'.format(datetime.datetime.utcnow()))
+
+
+
+
 
 available_windows = find_windows_to_continue(top_level_output_dir)
 if len(available_windows) < 1:

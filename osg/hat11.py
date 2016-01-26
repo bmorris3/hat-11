@@ -42,7 +42,7 @@ spot_properties = dict(lightcurve_path=None,
 action_properties = dict(random_seed=74384338,
                          a_scale=2.5,
                          n_chains=20,
-                         n_steps=500,
+                         n_steps=1000,
                          calc_brightness=1
                          )
 

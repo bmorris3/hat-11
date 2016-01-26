@@ -16,6 +16,8 @@ top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',
                                     run_name)
 
 condor_template = open('template.osg-xsede', 'r')
+condor_submit_path = 'condor_submit.osg-xsede'
+falconer_log = open('falconer_log.txt', 'wa')
 
 def find_windows_to_continue(output_dir_path):
     """
@@ -63,7 +65,7 @@ def find_windows_to_continue(output_dir_path):
                 this_window_is_running_or_assigned = True
     return runs_ready_to_begin
 
-def begin_new_run(output_dir_path, window_index, run_index, job_id=None):
+def begin_new_run(output_dir_path, window_index, run_index):
     """
     Parameters
     ----------
@@ -75,7 +77,6 @@ def begin_new_run(output_dir_path, window_index, run_index, job_id=None):
         Index of run for new job
     """
     print(os.uname())
-    print("Job ID: {0}".format(job_id))
 
     run_dir = os.path.join(output_dir_path,
                                     "window{0:03d}/run{1:03d}/"
@@ -111,29 +112,31 @@ def begin_new_run(output_dir_path, window_index, run_index, job_id=None):
 
 
         output_files = ["window{0:03d}_run{1:03d}_{2}.txt".format(window_index, run_index, out)
-                        for out in ["mcmc", "lcbest", "finalparam", "_parambest"]]
+                        for out in ["mcmc", "lcbest", "finalparam", "parambest"]]
 
         input_files = [i for i in [seed_finalparam_source, dat_file, in_file] if i is not None]
 
         condor_in = dict(xsede_allocation_name = 'TG-AST150046',
             initial_directory = run_dir,
             stsp_executable = '/home/bmorris/git/STSP/stsp_login',
-            dot_in_file = in_file,
+            dot_in_file = in_file.split(os.sep)[-1],
             transfer_input_files = ", ".join(input_files),
             transfer_output_files = ", ".join(output_files),
             stdout_path = 'myout.txt',
             stderr_path = 'myerr.txt',
             log_path = 'mylog.txt')
 
-        with open('condor_submit.osg-xsede', 'w') as submit:
+        with open(condor_submit_path, 'w') as submit:
             submit.write(condor_template.format(**condor_in))
+
+        with falconer_log as fl:
+            fl.write("Submitting: window{0:03d}_run{1:03d}\n".format(window_index, run_index))
+
+        os.system('condor_submit {0}'.format(condor_submit_path))
 
     else:
         with open(initialized_path, 'a') as init:
             init.write('Another initialization attempted at {0}'.format(datetime.datetime.utcnow()))
-
-
-
 
 
 available_windows = find_windows_to_continue(top_level_output_dir)
@@ -141,8 +144,9 @@ if len(available_windows) < 1:
     raise ValueError("No available windows to run")
 
 random_integer = np.random.randint(len(available_windows))
-window_index, run_index = available_windows[0]#[random_integer]
+#window_index, run_index = available_windows[0]#[random_integer]
+#begin_new_run(top_level_output_dir, window_index, run_index, sys.argv[-1])
 
-print("Now beginning: (window, run) = ({0}, {1})".format(window_index, run_index))
-print(available_windows)
-begin_new_run(top_level_output_dir, window_index, run_index, sys.argv[-1])
+for available_window in available_windows:
+    window_index, run_index = available_window
+    begin_new_run(top_level_output_dir, window_index, run_index)

@@ -27,7 +27,7 @@ stellar_properties = dict(mean_stellar_density=1.81004,
                           stellar_rotation_period=29.984,
                           stellar_temperature=4780,
                           stellar_metallicity=0,
-                          tilt_stellar_rotation_axis=80,
+                          tilt_stellar_rotation_axis=90-80,
                           four_param_limb_darkening=' '.join(map(str, [0, 0.86730, 0, -0.15162])),
                           n_ld_rings=40
                           )

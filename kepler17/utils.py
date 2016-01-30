@@ -300,7 +300,7 @@ class STSPRun(object):
         """Get all of the window??? directory paths, sort them"""
         return sorted(glob(os.path.join(self.output_dir_path, 'window*')))
 
-    def create_unseeded_runs(self):
+    def create_runs(self):
         """
         Make run??? dirs in each window??? dir.
         """
@@ -319,15 +319,17 @@ class STSPRun(object):
                     self.write_unseeded_in_file(os.path.join(new_dir_path, in_file_name),
                                                               lower_level_light_curve_path)
                 else:
-                    previous_dir_path = os.path.join(window, 'run{0:03d}'.format(restart-1))
-                    previous_in_file = glob(os.path.join(previous_dir_path, '*.in'))[0]
-                    seed_finalparam_file = os.path.basename(previous_in_file.split('.in')[0] +
-                                                           '_finalparam.txt')
-                    #seed_finalparam_dir = os.path.dirname(previous_in_file).split(os.sep)[-1]
-                    seed_finalparam_path = seed_finalparam_file
-                    self.write_seeded_in_file(os.path.join(new_dir_path, in_file_name),
-                                              lower_level_light_curve_path,
-                                              seed_finalparam_path)
+                    initialized_path = os.path.join(new_dir_path, 'initialized.txt')
+                    if not os.path.exists(initialized_path):
+                        previous_dir_path = os.path.join(window, 'run{0:03d}'.format(restart-1))
+                        previous_in_file = glob(os.path.join(previous_dir_path, '*.in'))[0]
+                        seed_finalparam_file = os.path.basename(previous_in_file.split('.in')[0] +
+                                                               '_finalparam.txt')
+                        #seed_finalparam_dir = os.path.dirname(previous_in_file).split(os.sep)[-1]
+                        seed_finalparam_path = seed_finalparam_file
+                        self.write_seeded_in_file(os.path.join(new_dir_path, in_file_name),
+                                                  lower_level_light_curve_path,
+                                                  seed_finalparam_path)
 
 
     def write_unseeded_in_file(self, output_path, light_curve_path):

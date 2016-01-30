@@ -89,6 +89,9 @@ def begin_new_run(output_dir_path, window_index, run_index, job_id=None):
                                  .format(window_index, run_index))
 
     if not os.path.exists(initialized_path):
+        with open(initialized_path, 'w') as init:
+            init.write('Initialized at {0}'.format(datetime.datetime.utcnow()))
+
         in_file = os.path.join(output_dir_path,
                                "window{0:03d}/run{1:03d}/window{0:03d}_run{1:03d}.in"
                                .format(window_index, run_index))
@@ -109,10 +112,6 @@ def begin_new_run(output_dir_path, window_index, run_index, job_id=None):
                                           "window{0:03d}/run{1:03d}/window{0:03d}_run{1:03d}_finalparam.txt"
                                           .format(window_index, run_index-1))
             shutil.copy(seed_finalparam, local_run_dir)
-
-
-        with open(initialized_path, 'w') as init:
-            init.write('Initialized at {0}'.format(datetime.datetime.utcnow()))
 
         os.chdir(local_run_dir)
         p = subprocess.Popen([stsp_executable], stdout=subprocess.PIPE, stderr=subprocess.PIPE)

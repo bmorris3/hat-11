@@ -16,28 +16,25 @@ import batman
 import matplotlib.pyplot as plt
 import astropy.units as u
 
-
-def T14b2aRsi(P, T14, b):
+def T14b2aRsi(P, T14, b, RpRs, eccentricity, omega):
     '''
     Convert from duration and impact param to a/Rs and inclination
     '''
-    i = np.arccos( ( (P/np.pi)*np.sqrt(1 - b**2)/(T14*b) )**-1 )
-    aRs = b/np.cos(i)
+    beta = (1 - eccentricity**2)/(1 + eccentricity*np.sin(np.radians(omega)))
+    C = np.sqrt(1 - eccentricity**2)/(1 + eccentricity*np.sin(np.radians(omega)))
+    i = np.arctan(beta * np.sqrt((1 + RpRs)**2 - b**2)/(b*np.sin(T14*np.pi/(P*C))))
+    aRs = b/(np.cos(i) * beta)
     return aRs, np.degrees(i)
-
-def aRsi2T14b(P, aRs, i):
-    '''
-    Convert from a/Rs and inclination to duration and impact param
-    '''
-    b = aRs*np.cos(i)
-    T14 = (P/np.pi)*np.sqrt(1-b**2)/aRs
-    return T14, b
-
 
 ecosw = 0.261# ? 0.082
 esinw = 0.085# ? 0.043
 eccentricity = np.sqrt(ecosw**2 + esinw**2)
 omega = np.degrees(np.arccos(ecosw/eccentricity))
+
+#ecosw = 0.228
+#esinw = 0.056
+#ecentricity = np.sqrt(ecosw**2 + esinw**2)
+#omega = np.degrees(np.arccos(ecosw/eccentricity))
 
 def generate_model_lc_short(times, t0, depth, dur, b, q1, q2, q3=None, q4=None, P=4.8878018,
                             e=eccentricity, w=omega):
@@ -49,12 +46,13 @@ def generate_model_lc_short(times, t0, depth, dur, b, q1, q2, q3=None, q4=None, 
     params.per = P                     #orbital period
     params.rp = rp                      #planet radius (in units of stellar radii)
 
-    a, inc = T14b2aRsi(params.per, dur, b)
+    params.ecc = e                      #eccentricity
+    params.w = w                      #longitude of periastron (in degrees)
+    a, inc = T14b2aRsi(params.per, dur, b, rp, e, w)
 
     params.a = a                       #semi-major axis (in units of stellar radii)
     params.inc = inc #orbital inclination (in degrees)
-    params.ecc = e                      #eccentricity
-    params.w = w                       #longitude of periastron (in degrees)
+
 
     u1 = 2*np.sqrt(q1)*q2
     u2 = np.sqrt(q1)*(1 - 2*q2)
@@ -83,13 +81,13 @@ def generate_model_lc_short_full(times, depth, dur, b, ecosw, esinw, q1, q2,
     params.per = fixed_P                     #orbital period
     params.rp = rp                      #planet radius (in units of stellar radii)
 
-    a, inc = T14b2aRsi(params.per, dur, b)
+    eccentricity = np.sqrt(ecosw**2 + esinw**2)
+    omega = np.degrees(np.arccos(ecosw/eccentricity))
+    a, inc = T14b2aRsi(params.per, dur, b, rp, eccentricity, omega)
 
     params.a = a                       #semi-major axis (in units of stellar radii)
     params.inc = inc #orbital inclination (in degrees)
 
-    eccentricity = np.sqrt(ecosw**2 + esinw**2)
-    omega = np.degrees(np.arccos(ecosw/eccentricity))
     params.ecc = eccentricity                      #eccentricity
     params.w = omega                       #longitude of periastron (in degrees)
 

@@ -5,16 +5,10 @@ import os
 from utils import (STSPRun, get_transit_parameters)
 from glob import glob
 
-run_name = 'hat11'
-executable_path = '/home/bmorris/git/STSP/stsp_20160125'
-top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',
-                                    run_name)
-transit_paths = glob('/local-scratch/bmorris/hat11/hat11_single_transits/*.txt')
-
 planet_properties = dict(n_planets=1,
                          first_mid_transit_time=2454605.89154,
                          period=4.88780236,
-                         transit_depth=0.00343**0.5,
+                         transit_depth=0.00343,
                          transit_duration_days=0.0982,
                          impact_parameter=0.121,
                          inclination=89.45042,
@@ -49,17 +43,27 @@ action_properties = dict(random_seed=74384338,
                          calc_brightness=1
                          )
 
-run = STSPRun(parameter_file_path=None,
-              light_curve_path=None,
-              output_dir_path=top_level_output_dir,
-              initial_dir=top_level_output_dir,
-              condor_config_path=os.path.join('./', run_name+'.condor'),
-              planet_properties=planet_properties,
-              stellar_properties=stellar_properties,
-              spot_properties=spot_properties,
-              action_properties=action_properties,
-              n_restarts=5)
 
-run.copy_data_files(transit_paths=transit_paths)
-run.create_runs()
-#run.make_condor_config()
+if __name__ == '__main__':
+
+    run_name = 'hat11'
+    executable_path = '/home/bmorris/git/STSP/stsp_20160125'
+    top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',
+                                        run_name)
+    transit_paths = glob('/local-scratch/bmorris/hat11/hat11_single_transits/*.txt')
+
+
+    run = STSPRun(parameter_file_path=None,
+                  light_curve_path=None,
+                  output_dir_path=top_level_output_dir,
+                  initial_dir=top_level_output_dir,
+                  condor_config_path=os.path.join('./', run_name+'.condor'),
+                  planet_properties=planet_properties,
+                  stellar_properties=stellar_properties,
+                  spot_properties=spot_properties,
+                  action_properties=action_properties,
+                  n_restarts=5)
+
+    run.copy_data_files(transit_paths=transit_paths)
+    run.create_runs()
+    #run.make_condor_config()

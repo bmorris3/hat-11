@@ -17,6 +17,11 @@ per = 4.88780296
 ecosw = 0.261
 esinw = 0.085
 eccentricity = np.sqrt(ecosw**2 + esinw**2)
+w = np.arccos(ecosw/eccentricity)
+#w += np.pi
+offset = np.pi/2
+ecosw = eccentricity*np.cos(w + offset)
+esinw = eccentricity*np.sin(w + offset)
 
 planet_properties = dict(n_planets=1,
                          first_mid_transit_time=t0,  # From fits in data/fit_transit.ipynb
@@ -26,8 +31,8 @@ planet_properties = dict(n_planets=1,
                          impact_parameter=0.278,   # From fits in data/fit_transit.ipynb
                          inclination=88.9027452976,   # From fits in data/fit_transit.ipynb
                          orbit_lambda=103,  # Winn 2010
-                         ecosw=0.261,  # Winn 2010
-                         esinw=0.085  # Winn 2010
+                         ecosw=ecosw, #=0.261,  # Winn 2010
+                         esinw=esinw#=0.085  # Winn 2010
                          )
 
 stellar_properties = dict(mean_stellar_density=2.41,  # From fits in data/fit_transit.ipynb

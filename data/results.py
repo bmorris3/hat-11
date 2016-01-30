@@ -7,8 +7,10 @@ import matplotlib
 from matplotlib import pyplot as plt
 import astropy.units as u
 from astropy.constants import R_sun
+from astropy.time import Time
 from astropy.coordinates import SphericalRepresentation, CartesianRepresentation
 from datacleaner import LightCurve
+import corner
 
 results_dir = os.path.abspath('../condor/tmp_long/')
 #results_dir = os.path.abspath('../condor/tmp/')
@@ -29,115 +31,205 @@ for output_file in files_in_dir:
 
 
 class BestLightCurve(object):
-    def __init__(self, path):
+    def __init__(self, path, transit_params=None):
         self.path = path
+        self.default_figsize = (20, 8)
 
         times, fluxes_kepler, errors, fluxes_model, flags = np.loadtxt(path, unpack=True)
 
-        self.times = times
+        self.times = times if times.mean() > 2450000 else times + 2454833.
         self.fluxes_kepler = fluxes_kepler
         self.errors = errors
         self.fluxes_model = fluxes_model
         self.flags = flags
 
-        self.kepler_lc = LightCurve(times=times, fluxes=fluxes_kepler, errors=errors)
-        self.model_lc = LightCurve(times=times, fluxes=fluxes_model)
+        self.kepler_lc = LightCurve(times=self.times, fluxes=fluxes_kepler, errors=errors)
+        self.model_lc = LightCurve(times=self.times, fluxes=fluxes_model)
+        self.transit_params = transit_params
 
     def plot_whole_lc(self):
 
         # Whole light curve
-        fig, ax = plt.subplots(2, 1, figsize=(16, 8),
+        fig, ax = plt.subplots(2, 1, figsize=self.default_figsize,
                                sharex='col')
-        ax[0].plot(self.times, self.fluxes_kepler, 'k.', label='Kepler')
-        ax[0].plot(self.times, self.fluxes_model, 'r', label='STSP')
-        ax[0].legend(loc='lower left')
+        ax[0].plot_date(self.kepler_lc.times.plot_date, self.fluxes_kepler, 'k.', label='Kepler')
+        ax[0].plot_date(self.model_lc.times.plot_date, self.fluxes_model, 'r', label='STSP')
+        #ax[0].legend(loc='lower left')
         ax[0].set(ylabel='Flux')
 
-        ax[1].plot(self.times, self.fluxes_kepler - self.fluxes_model, 'k.')
+        ax[1].plot_date(self.kepler_lc.times.plot_date, self.fluxes_kepler - self.fluxes_model, 'k.')
         ax[1].set(xlabel='Time', ylabel='Residuals')
+        ax[1].axhline(0, color='r')
 
         return fig, ax
 
     def plot_transits(self):
 
-        kepler_transits = LightCurve(**self.kepler_lc.mask_out_of_transit()
-                                     ).get_transit_light_curves()
-        model_transits = LightCurve(**self.model_lc.mask_out_of_transit()
-                                    ).get_transit_light_curves()
+        if self.transit_params is not None:
+            kepler_transits = LightCurve(**self.kepler_lc.mask_out_of_transit(params=self.transit_params)
+                                         ).get_transit_light_curves(params=self.transit_params)
+            model_transits = LightCurve(**self.model_lc.mask_out_of_transit(params=self.transit_params)
+                                        ).get_transit_light_curves(params=self.transit_params)
+
+        else:
+            kepler_transits = LightCurve(**self.kepler_lc.mask_out_of_transit()
+                                         ).get_transit_light_curves()
+            model_transits = LightCurve(**self.model_lc.mask_out_of_transit()
+                                        ).get_transit_light_curves()
 
         # Whole light curve
-        fig, ax = plt.subplots(2, len(kepler_transits), figsize=(16, 8),
-                               sharex='col')
-        scale_factor = 0.4e-6
-        for i in range(len(kepler_transits)):
-            ax[0, i].plot(kepler_transits[i].times.jd, scale_factor*kepler_transits[i].fluxes,
-                          'k.', label='Kepler')
-            ax[0, i].plot(model_transits[i].times.jd, scale_factor*model_transits[i].fluxes,
-                          'r', label='STSP')
 
-            ax[1, i].plot(kepler_transits[i].times.jd,
-                          scale_factor*(kepler_transits[i].fluxes -
-                                        model_transits[i].fluxes), 'k.')
-            ax[1, i].set(xlabel='Time')
+        if len(kepler_transits) > 0:
+            fig, ax = plt.subplots(2, len(kepler_transits), figsize=self.default_figsize,
+                                   sharex='col')
+            scale_factor = 0.4e-6
+            for i in range(len(kepler_transits)):
+                ax[0, i].plot(kepler_transits[i].times.plot_date, scale_factor*kepler_transits[i].fluxes,
+                              'k.', label='Kepler')
+                ax[0, i].plot(model_transits[i].times.plot_date, scale_factor*model_transits[i].fluxes,
+                              'r', label='STSP')
+                ax[0, i].set(yticks=[])
 
-        ax[0, 0].legend(loc='lower left')
-        ax[0, 0].set(ylabel=r'Flux $\times \, 10^{{{0:.1f}}}$'.format(np.log10(scale_factor)))
-        ax[1, 0].set(ylabel=r'Residuals $\times \, 10^{{{0:.1f}}}$'.format(np.log10(scale_factor)))
-        fig.subplots_adjust(wspace=0.5)
-        return fig, ax
+                ax[1, i].axhline(0, color='r', lw=2)
+
+                ax[1, i].plot(kepler_transits[i].times.plot_date,
+                              scale_factor*(kepler_transits[i].fluxes -
+                                            model_transits[i].fluxes), 'k.')
+                xtick = Time(kepler_transits[i].times.jd.mean(), format='jd')
+                ax[1, i].set(xticks=[xtick.plot_date], xticklabels=[xtick.iso.split('.')[0]],
+                             yticks=[])
+
+                #ax[1, i].set(xlabel='Time')
+
+            #ax[0, 0].legend(loc='lower left')
+            ax[0, 0].set(ylabel=r'Flux')# $\times \, 10^{{{0:.1f}}}$'.format(np.log10(scale_factor)))
+            ax[1, 0].set(ylabel=r'Residuals')# $\times \, 10^{{{0:.1f}}}$'.format(np.log10(scale_factor)))
+            #fig.subplots_adjust(wspace=0.5)
+            fig.tight_layout()
+            return fig, ax
+        else:
+            return None, None
 
 
 class MCMCResults(object):
-    def __init__(self, path):
-        self.path = path
-        self.table = np.loadtxt(path)
-        self.chain_ind = self.table[:, 0]
-        self.step_ind = self.table[:, 1]
+    def __init__(self, paths, burnin=0.5):
 
+        self.table = []
+        self.chain_ind = []
+        self.burnin = burnin
+        #self.step_ind = []
+
+        for path in paths:
+            table = np.loadtxt(path)
+            if len(self.table) == 0:
+                self.table = table
+            else:
+                self.table = np.vstack([self.table, table])
+
+            self.chain_ind = np.concatenate([self.chain_ind, table[:, 0]])
+
+            #offset = 0 if len(self.step_ind) == 0 else self.step_ind[-1]
+            #plt.figure()
+            #plt.plot(self.step_ind)
+            #self.step_ind = np.concatenate([self.step_ind, table[:, 1] + offset])
+
+        self.n_properties_per_spot = 3
+        self.col_offset = 4
+        self.n_spots = (self.table.shape[1] - self.col_offset)/self.n_properties_per_spot
+
+        # Note: latitude is defined on (0, pi) rather than (-pi/2, pi/2)
+        self.radius = self.table[:, self.col_offset+self.n_properties_per_spot*np.arange(self.n_spots)]
+        self.lat = self.table[:, self.col_offset+1+self.n_properties_per_spot*np.arange(self.n_spots)]
+        self.lon = self.table[:, self.col_offset+2+self.n_properties_per_spot*np.arange(self.n_spots)]
+
+        self.radius_col = self.col_offset+self.n_properties_per_spot*np.arange(self.n_spots)
+        self.lat_col = self.col_offset+1+self.n_properties_per_spot*np.arange(self.n_spots)
+        self.lon_col = self.col_offset+2+self.n_properties_per_spot*np.arange(self.n_spots)
+
+        self.burnin_int = int(self.burnin*self.table.shape[0])
 
     def plot_chains(self):
         #fig, ax = plt.subplots(5)
         n_walkers = len((set(self.chain_ind)))
-        n_spots = (self.table.shape[1] - 4)/3
-        n_properties_per_spot = 3
         fig, ax = plt.subplots(1, 3, figsize=(16, 8))
 
         for i in range(n_walkers):
             chain_i = self.chain_ind == i
-            col_offset = 4
-            radius = self.table[chain_i, :][:, col_offset+n_properties_per_spot*np.arange(n_spots)]
-            lat = self.table[chain_i, :][:, col_offset+1+n_properties_per_spot*np.arange(n_spots)]
-            lon = self.table[chain_i, :][:, col_offset+2+n_properties_per_spot*np.arange(n_spots)]
+            radius = self.table[chain_i, :][:, self.col_offset+self.n_properties_per_spot*np.arange(self.n_spots)]
+            lat = self.table[chain_i, :][:, self.col_offset+1+self.n_properties_per_spot*np.arange(self.n_spots)]
+            lon = self.table[chain_i, :][:, self.col_offset+2+self.n_properties_per_spot*np.arange(self.n_spots)]
 
             cmap = plt.cm.winter
             ax[0].plot(radius, color=cmap(float(i)/n_walkers))
             ax[1].plot(lat, color=cmap(float(i)/n_walkers))
             ax[2].plot(lon, color=cmap(float(i)/n_walkers))
-            ax[0].set(title='Radius')
-            ax[1].set(title='Latitude')
-            ax[2].set(title='Longitude')
+            ax[0].set(title='Radius', xlabel='Step')
+            ax[1].set(title='Latitude', xlabel='Step')
+            ax[2].set(title='Longitude', xlabel='Step')
+        fig.tight_layout()
 
-        plt.show()
+        #plt.show()
+        n_spots = self.radius.shape[1]
+        fig, ax = plt.subplots(n_spots, 3, figsize=(16, 8))
+        n_bins = 200
+        for i in range(self.radius.shape[1]):
+            ax[i, 0].hist(self.radius[self.burnin_int:, i], n_bins)#, alpha=0.3)
+            ax[i, 1].hist(self.lat[self.burnin_int:, i], n_bins, log=True)#, alpha=0.3)
+            ax[i, 2].hist(self.lon[self.burnin_int:, i], n_bins, log=True)#, alpha=0.3)
+            ax[i, 0].set_ylabel('Spot {0}'.format(i))
+        ax[0, 0].set(title='Radius')
+        ax[0, 1].set(title='Latitude')
+        ax[0, 2].set(title='Longitude')
+        fig.tight_layout()
 
-    def plot_star(self):
-        n_spots = (self.table.shape[1] - 4)/3
-        n_properties_per_spot = 3
-        col_offset = 4
+    def plot_each_spot(self):
+        #fig, ax = plt.subplots(5)
+        n_spots = self.radius.shape[1]
+        burn_in_to_index = int(self.burnin*self.radius.shape[0])
+        for i in range(n_spots):
+            samples = np.array([self.radius[burn_in_to_index:, i],
+                                self.lon[burn_in_to_index:, i]]).T # self.lat[:, i],
+            corner.corner(samples)
 
-        # Note: latitude is defined on (0, pi) rather than (-pi/2, pi/2)
-        radius = self.table[:, col_offset+n_properties_per_spot*np.arange(n_spots)]
-        lat = self.table[:, col_offset+1+n_properties_per_spot*np.arange(n_spots)]
-        lon = self.table[:, col_offset+2+n_properties_per_spot*np.arange(n_spots)]
+            # cmap = plt.cm.winter
+            # ax[0].plot(radius, color=cmap(float(i)/n_walkers))
+            # ax[1].plot(lat, color=cmap(float(i)/n_walkers))
+            # ax[2].plot(lon, color=cmap(float(i)/n_walkers))
+            # ax[0].set(title='Radius', xlabel='Step')
+            # ax[1].set(title='Latitude', xlabel='Step')
+            # ax[2].set(title='Longitude', xlabel='Step')
 
-        spots_spherical = SphericalRepresentation(lon*u.rad,
-                                                  (lat - np.pi/2)*u.rad,
+    def plot_star(self, fade_out=True):
+        spots_spherical = SphericalRepresentation(self.lon*u.rad,
+                                                  (self.lat - np.pi/2)*u.rad,
                                                   1*R_sun)
         self.spots_spherical = spots_spherical
-        fig, ax = plot_star(spots_spherical)
-        plt.show()
+        fig, ax = plot_star(spots_spherical, fade_out=fade_out)
+        #plt.show()
 
+    def plot_corner(self):
+        #fig = plt.figure(figsize=(14, 14))
 
-def plot_star(spots_spherical):
+        exclude_columns = np.array([0, 1, 2, 3, 5, 8, 11, 14, 17])
+        include_columns = np.ones(self.table.shape[1])
+        include_columns[exclude_columns] = 0
+        fig = corner.corner(self.table[:, include_columns.astype(bool)])#, fig=fig)
+        return fig
+
+    def plot_chi2(self):
+        n_walkers = len((set(self.chain_ind)))
+        fig, ax = plt.subplots(figsize=(12, 12))
+        n_spots = self.radius.shape[1]
+
+        for i in range(n_walkers):
+            chain_i = self.chain_ind == i
+
+            chi2 = self.table[chain_i, 3]
+            #ax.semilogx(range(len(chi2)), chi2)
+            ax.semilogx(range(len(chi2)), np.log10(chi2))
+            ax.set(xlabel='Step', ylabel=r'$\log_{10} \, \chi^2$')
+
+def plot_star(spots_spherical, fade_out=False):
     """
     Parameters
     ----------
@@ -237,7 +329,14 @@ def plot_star(spots_spherical):
     spots_y = spots_cart.y/R_sun
     spots_z = spots_cart.z/R_sun
 
-    alpha = 0.5
+    if fade_out:
+        n = float(len(spots_x))
+        alpha_range = np.arange(n)
+        
+        alpha = (n - alpha_range)/n
+    else:
+        alpha = 0.5
+
     for spot_ind in range(spots_x.shape[1]):
 
         above_x_plane = spots_x[:, spot_ind] > 0
@@ -267,12 +366,13 @@ def plot_star(spots_spherical):
     matplotlib.rcParams = oldrcparams
     return fig, ax
 
+
 # blc = BestLightCurve(best_lc_path)
 # blc.plot_whole_lc()
 # blc.plot_transits()
 # plt.show()
 
-mcmc = MCMCResults(mcmc_path)
+#mcmc = MCMCResults(mcmc_path)
 #mcmc.plot_chains()
-mcmc.plot_star()
-plt.show()
+#mcmc.plot_star()
+#plt.show()

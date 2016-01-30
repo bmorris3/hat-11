@@ -56,25 +56,38 @@ def find_windows_to_continue(output_dir_path):
                 runs_ready_to_begin.append(run_id)
                 this_window_is_running_or_assigned = True
     return completed_runs, runs_in_progress
-    
-completed_runs, runs_in_progress = find_windows_to_continue(top_level_output_dir)
 
-import matplotlib.pyplot as plt
+if __name__ == '__main__':
+    completed_runs, runs_in_progress = find_windows_to_continue(top_level_output_dir)
 
-max_runs = dict()
-for window, run in completed_runs:
-    if window not in max_runs or max_runs[window] < run:
-        max_runs[window] = run
+    print("Runs in progress ({0}): {1}".format(len(runs_in_progress), runs_in_progress))
+#    print("Total runs in progress:", len(runs_in_progress))
 
-window_number, run_number = zip(*max_runs.items())
+    import matplotlib.pyplot as plt
 
-fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-ax[0].plot(window_number, run_number, lw=2)#ls='steps', lw=2)
-ax[0].set_xlabel('Window')
-ax[0].set_ylabel('Run')
-ax[0].axhline(np.mean(run_number))
+    last_completed_runs = dict()
+    for window, run in completed_runs:
+        if window not in last_completed_runs or last_completed_runs[window] < run:
+            last_completed_runs[window] = run
 
-ax[1].hist(run_number)
-ax[1].set_xlabel('Latest completed runs')
-plt.show()
+    in_progress_runs = [run for window, run in runs_in_progress]
+
+    window_number, run_number = zip(*last_completed_runs.items())
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    ax[0].plot(window_number, run_number, lw=2)#ls='steps', lw=2)
+    ax[0].set_xlabel('Window')
+    ax[0].set_ylabel('Run')
+    ax[0].axhline(np.mean(run_number))
+
+    ax[1].hist(run_number, max(run_number), range=[0, max(run_number)],
+               label='Last Completed', color='k', alpha=0.5)
+
+    if len(in_progress_runs) > 0:
+        ax[1].hist(in_progress_runs, max(in_progress_runs),
+                   range=[0, max(in_progress_runs)],
+                   label='In Progress', color='r', alpha=0.5)
+    ax[1].set_xlabel('Latest completed runs')
+    ax[1].legend(loc='upper center')
+    plt.show()
 

@@ -44,7 +44,7 @@ spot_properties = dict(lightcurve_path=os.path.abspath(light_curve_path),
 
 # For an unseeded run:
 action_properties = dict(random_seed=74384338,
-                         a_scale=1.25,
+                         a_scale=2.5,
                          n_chains=50,
                          n_steps=1000,
                          calc_brightness=1
@@ -60,8 +60,8 @@ run = STSPRun(parameter_file_path=parameter_file_path,
               stellar_properties=stellar_properties,
               spot_properties=spot_properties,
               action_properties=action_properties,
-              n_restarts=10)
+              n_restarts=20)
 
 #run.write_data_files()
-#run.create_unseeded_runs()
+run.create_runs()
 run.make_condor_config()

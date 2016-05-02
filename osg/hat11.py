@@ -28,7 +28,7 @@ stellar_properties = dict(mean_stellar_density=1.81004,
 
 spot_properties = dict(lightcurve_path=None,
                        flattened_flag=1,
-                       n_spots=5,
+                       n_spots=2,
                        fractional_spot_contrast=0.7
                        )
 
@@ -50,8 +50,14 @@ if __name__ == '__main__':
     executable_path = '/home/bmorris/git/STSP/stsp_20160125'
     top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',
                                         run_name)
-    transit_paths = glob('/local-scratch/bmorris/hat11/hat11_single_transits/*.txt')
+    transit_paths = glob('/local/bmorris/hat11/friedrich/lc*.txt')
+    spot_param_paths = glob('/local/bmorris/hat11/friedrich/stsp_spots*.txt')
 
+    # executable_path = '/astro/users/bmmorris/git/STSP/stsp_20160125'
+    # top_level_output_dir = os.path.join('/local/tmp/tmp/',
+    #                                     run_name)
+    # transit_paths = glob('/local/tmp/friedrich/hat11/lc*.txt')
+    # spot_param_paths = glob('/local/tmp/friedrich/hat11/stsp_spots*.txt')
 
     run = STSPRun(parameter_file_path=None,
                   light_curve_path=None,
@@ -64,6 +70,6 @@ if __name__ == '__main__':
                   action_properties=action_properties,
                   n_restarts=5)
 
-    run.copy_data_files(transit_paths=transit_paths)
+    run.copy_data_files(transit_paths=transit_paths, spot_param_paths=spot_param_paths)
     run.create_runs()
     #run.make_condor_config()

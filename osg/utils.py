@@ -249,22 +249,36 @@ class STSPRun(object):
     #                           str(ee[wndw[0][k]]) + '\n')
     #             dfn.close()
 
-    def copy_data_files(self, transit_paths):
+    def copy_data_files(self, transit_paths, spot_param_paths):
         """
         Create the *.dat data files for each time window, using time windows that cover only one transit
         """
-        p_orb, t_0, tdur, p_rot, Rp_Rs, impact, incl_orb, Teff, sden = self.get_transit_parameters()
+        # p_orb, t_0, tdur, p_rot, Rp_Rs, impact, incl_orb, Teff, sden = self.get_transit_parameters()
 
         for transit_path in transit_paths:
-            n = int(transit_path.split("transit")[-1].split(".")[0])
+            if 'transit' in transit_path:
+                n = int(transit_path.split("transit")[-1].split(".")[0])
+            else:
+                n = int(transit_path.split("lc")[-1].split(".")[0])
             window_dir = os.path.join(self.output_dir_path,
                                       "window{0:03d}".format(n))
             data_path = os.path.join(window_dir,
                                      "window{0:03d}.dat".format(n))
+
             if not os.path.exists(window_dir):
                 os.mkdir(window_dir)
 
             shutil.copyfile(transit_path, data_path)
+
+        for spot_path in spot_param_paths:
+            n = int(spot_path.split("stsp_spots")[-1].split(".")[0])
+            window_dir = os.path.join(self.output_dir_path,
+                                      "window{0:03d}".format(n))
+
+            spot_param_path = os.path.join(window_dir,
+                                           "stsp_spots{0:03d}.txt".format(n))
+
+            shutil.copyfile(spot_path, spot_param_path)
 
         # tt, ff, ee = self.get_downsampled_data(FLATMODE=False)
         #
@@ -325,9 +339,20 @@ class STSPRun(object):
                 in_file_name = '_'.join(new_dir_path.split(os.sep)[-2:]) + '.in'
 
                 if restart == 0:
+                    stsp_spot_path = glob(os.path.join(window, 'stsp_spots*.txt'))
+
+                    # If there's a friedrich-generated STSP spot param file, use it
+                    # to seed the job
                     lower_level_light_curve_path = glob(os.path.join(new_dir_path, '*.dat'))[0]
-                    self.write_unseeded_in_file(os.path.join(new_dir_path, in_file_name),
-                                                              lower_level_light_curve_path)
+                    if len(stsp_spot_path) > 0:
+                        self.write_friedrich_seeded_in_file(os.path.join(new_dir_path, in_file_name),
+                                                            lower_level_light_curve_path,
+                                                            stsp_spot_path[0])
+                    # If friedrich didn't produce spot parameters, create unseeded
+                    # run
+                    else:
+                        self.write_unseeded_in_file(os.path.join(new_dir_path, in_file_name),
+                                                    lower_level_light_curve_path)
                 else:
                     initialized_path = os.path.join(new_dir_path, 'initialized.txt')
                     if not os.path.exists(initialized_path):
@@ -372,6 +397,46 @@ class STSPRun(object):
             ## For spots with fixed latitudes at the equator:
             #for spot in range(all_dicts['n_spots']):
             #    f.write("1.57079632679\n")
+
+
+    def write_friedrich_seeded_in_file(self, output_path, light_curve_path,
+                                       spot_param_path, spot_radius_sigma=0.05,
+                                       spot_angle_sigma=0.05):
+        """
+        Parameters
+        ----------
+        output_path : str
+            Path to the .in file to write
+
+        light_curve_path : str
+            Path to input light curve
+        """
+        all_dicts = self.planet_properties
+        for d in [self.stellar_properties, self.spot_properties,
+                  self.action_properties]:
+            all_dicts.update(d)
+
+        light_curve = np.loadtxt(light_curve_path)
+        # Seed options:
+        all_dicts['action'] = 's'
+        all_dicts['sigma_radius'] = spot_radius_sigma
+        all_dicts['sigma_angle'] = spot_angle_sigma
+
+        # Normal options:
+        all_dicts['lightcurve_path'] = light_curve_path.split(os.sep)[-1]
+        all_dicts['start_fit_time'] = light_curve[0, 0]
+        all_dicts['fit_duration_days'] = light_curve[-1, 0] - light_curve[0, 0]
+        all_dicts['noise_corrected_max'] = np.max(gaussian_filter(light_curve[:, 1], 10))
+
+        all_dicts['spot_params'] = open(spot_param_path).read().strip()
+
+        all_dicts['n_spots'] = all_dicts['spot_params'].count('spot radius')
+
+        template = open('init_seeded.in').read()
+        in_file = template.format(**all_dicts)
+        with open(output_path, 'w') as f:
+            f.write(in_file)
+
 
     def write_seeded_in_file(self, output_path, light_curve_path,
                              seed_finalparam_path, spot_radius_sigma=0.01,

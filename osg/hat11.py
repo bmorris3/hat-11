@@ -32,13 +32,13 @@ spot_properties = dict(lightcurve_path=None,
                        fractional_spot_contrast=0.7
                        )
 
-n_hours = 4.0
+n_hours = 1.0 #4.0
 n_seconds = int(n_hours*60*60)
 
 # For an unseeded run:
 action_properties = dict(random_seed=74384338,
                          a_scale=2.5,
-                         n_chains=250,
+                         n_chains=100, #250,
                          n_steps=-n_seconds,
                          calc_brightness=1
                          )
@@ -46,12 +46,12 @@ action_properties = dict(random_seed=74384338,
 
 if __name__ == '__main__':
 
-    run_name = 'hat11'
+    run_name = 'hat11-osg'
     executable_path = '/home/bmorris/git/STSP/stsp_20160125'
     top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',
                                         run_name)
-    transit_paths = glob('/local/bmorris/hat11/friedrich/lc*.txt')
-    spot_param_paths = glob('/local/bmorris/hat11/friedrich/stsp_spots*.txt')
+    transit_paths = glob('/local-scratch/bmorris/hat11/friedrich/lc*.txt')
+    spot_param_paths = glob('/local-scratch/bmorris/hat11/friedrich/stsp_spots*.txt')
 
     # executable_path = '/astro/users/bmmorris/git/STSP/stsp_20160125'
     # top_level_output_dir = os.path.join('/local/tmp/tmp/',
@@ -68,7 +68,7 @@ if __name__ == '__main__':
                   stellar_properties=stellar_properties,
                   spot_properties=spot_properties,
                   action_properties=action_properties,
-                  n_restarts=5)
+                  n_restarts=3)
 
     run.copy_data_files(transit_paths=transit_paths, spot_param_paths=spot_param_paths)
     run.create_runs()

@@ -14,7 +14,7 @@ import numpy as np
 
 window_ind, run_ind = sys.argv[-2:]
 # results_dir = ('/astro/store/scratch/tmp/bmmorris/stsp/kepler17/window{0:03d}/run{1:03d}/'
-results_dir = ('/local/tmp/osg/hat11/window{0:03d}/run{1:03d}/'
+results_dir = ('/local/tmp/osg/hat11-osg/window{0:03d}/run{1:03d}/'
                .format(int(window_ind), int(run_ind)))
 #if not os.path.exists(results_dir):
 
@@ -75,7 +75,7 @@ def hat11_params():
 transit_params = hat11_params()#get_basic_kepler17_params()
 blc = BestLightCurve(best_lc_path, transit_params=transit_params)
 blc.plot_whole_lc()
-blc.plot_transits()
+#blc.plot_transits()
 #plt.show()
 
 mcmc = MCMCResults(mcmc_paths)
@@ -83,5 +83,5 @@ mcmc.plot_chi2()
 mcmc.plot_chains()
 #mcmc.plot_star()
 #mcmc.plot_corner()
-mcmc.plot_each_spot()
+#mcmc.plot_each_spot()
 plt.show()

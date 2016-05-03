@@ -338,9 +338,10 @@ class STSPRun(object):
 
                 in_file_name = '_'.join(new_dir_path.split(os.sep)[-2:]) + '.in'
 
-                if restart == 0:
-                    stsp_spot_path = glob(os.path.join(window, 'stsp_spots*.txt'))
 
+                stsp_spot_path = glob(os.path.join(window, 'stsp_spots*.txt'))
+
+                if restart == 0:
                     # If there's a friedrich-generated STSP spot param file, use it
                     # to seed the job
                     lower_level_light_curve_path = glob(os.path.join(new_dir_path, '*.dat'))[0]
@@ -362,9 +363,14 @@ class STSPRun(object):
                                                                '_finalparam.txt')
                         #seed_finalparam_dir = os.path.dirname(previous_in_file).split(os.sep)[-1]
                         seed_finalparam_path = seed_finalparam_file
-                        self.write_seeded_in_file(os.path.join(new_dir_path, in_file_name),
-                                                  lower_level_light_curve_path,
-                                                  seed_finalparam_path)
+                        if len(stsp_spot_path) > 0:
+                            self.write_seeded_in_file(os.path.join(new_dir_path, in_file_name),
+                                                      lower_level_light_curve_path,
+                                                      seed_finalparam_path, spot_param_path=stsp_spot_path[0])
+                        else:
+                            self.write_seeded_in_file(os.path.join(new_dir_path, in_file_name),
+                                                      lower_level_light_curve_path,
+                                                      seed_finalparam_path)
 
 
     def write_unseeded_in_file(self, output_path, light_curve_path):
@@ -440,7 +446,7 @@ class STSPRun(object):
 
     def write_seeded_in_file(self, output_path, light_curve_path,
                              seed_finalparam_path, spot_radius_sigma=0.01,
-                             spot_angle_sigma=0.02):
+                             spot_angle_sigma=0.02, spot_param_path=None):
         """
         Parameters
         ----------
@@ -467,6 +473,10 @@ class STSPRun(object):
         all_dicts['start_fit_time'] = light_curve[0, 0]
         all_dicts['fit_duration_days'] = light_curve[-1, 0] - light_curve[0, 0]
         all_dicts['noise_corrected_max'] = np.max(gaussian_filter(light_curve[:, 1], 10))
+
+        if spot_param_path is not None:
+            n_spots = open(spot_param_path).read().strip().count('spot radius')
+            all_dicts['n_spots'] = n_spots
 
         template = open('seeded.in').read()
         in_file = template.format(**all_dicts)

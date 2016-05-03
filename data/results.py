@@ -33,7 +33,7 @@ for output_file in files_in_dir:
 class BestLightCurve(object):
     def __init__(self, path, transit_params=None):
         self.path = path
-        self.default_figsize = (20, 8)
+        self.default_figsize = (12, 8)#(20, 8)
 
         times, fluxes_kepler, errors, fluxes_model, flags = np.loadtxt(path, unpack=True)
 
@@ -52,14 +52,21 @@ class BestLightCurve(object):
         # Whole light curve
         fig, ax = plt.subplots(2, 1, figsize=self.default_figsize,
                                sharex='col')
-        ax[0].plot_date(self.kepler_lc.times.plot_date, self.fluxes_kepler, 'k.', label='Kepler')
-        ax[0].plot_date(self.model_lc.times.plot_date, self.fluxes_model, 'r', label='STSP')
+        ax[0].plot_date(self.kepler_lc.times.plot_date, self.fluxes_kepler,
+                        'k.', label='Kepler')
+        ax[0].plot_date(self.model_lc.times.plot_date, self.fluxes_model,
+                        'r', label='STSP')
         #ax[0].legend(loc='lower left')
         ax[0].set(ylabel='Flux')
 
-        ax[1].plot_date(self.kepler_lc.times.plot_date, self.fluxes_kepler - self.fluxes_model, 'k.')
+        ax[1].plot_date(self.kepler_lc.times.plot_date,
+                        self.fluxes_kepler - self.fluxes_model, 'k.')
         ax[1].set(xlabel='Time', ylabel='Residuals')
         ax[1].axhline(0, color='r')
+        #
+        # for l in ax[1].get_xticklabels():
+        #     l.set_rotation(45)
+        #     l.set_ha('right')
 
         return fig, ax
 
@@ -84,20 +91,20 @@ class BestLightCurve(object):
                                    sharex='col')
             scale_factor = 0.4e-6
             for i in range(len(kepler_transits)):
-                ax[0, i].plot(kepler_transits[i].times.plot_date, scale_factor*kepler_transits[i].fluxes,
+                ax[0, i].plot_date(kepler_transits[i].times.plot_date, scale_factor*kepler_transits[i].fluxes,
                               'k.', label='Kepler')
-                ax[0, i].plot(model_transits[i].times.plot_date, scale_factor*model_transits[i].fluxes,
+                ax[0, i].plot_date(model_transits[i].times.plot_date, scale_factor*model_transits[i].fluxes,
                               'r', label='STSP')
                 ax[0, i].set(yticks=[])
 
                 ax[1, i].axhline(0, color='r', lw=2)
 
-                ax[1, i].plot(kepler_transits[i].times.plot_date,
-                              scale_factor*(kepler_transits[i].fluxes -
+                ax[1, i].plot_date(kepler_transits[i].times.plot_date,
+                                   scale_factor*(kepler_transits[i].fluxes -
                                             model_transits[i].fluxes), 'k.')
                 xtick = Time(kepler_transits[i].times.jd.mean(), format='jd')
-                ax[1, i].set(xticks=[xtick.plot_date], xticklabels=[xtick.iso.split('.')[0]],
-                             yticks=[])
+                #ax[1, i].set(xticks=[xtick.plot_date], xticklabels=[xtick.iso.split('.')[0]],
+                #             yticks=[])
 
                 #ax[1, i].set(xlabel='Time')
 
@@ -120,6 +127,7 @@ class MCMCResults(object):
         #self.step_ind = []
 
         for path in paths:
+            print(path)
             table = np.loadtxt(path)
             if len(self.table) == 0:
                 self.table = table
@@ -160,9 +168,10 @@ class MCMCResults(object):
             lon = self.table[chain_i, :][:, self.col_offset+2+self.n_properties_per_spot*np.arange(self.n_spots)]
 
             cmap = plt.cm.winter
-            ax[0].plot(radius, color=cmap(float(i)/n_walkers))
-            ax[1].plot(lat, color=cmap(float(i)/n_walkers))
-            ax[2].plot(lon, color=cmap(float(i)/n_walkers))
+            kwargs = dict(color=cmap(float(i)/n_walkers), alpha=0.3)
+            ax[0].plot(radius, **kwargs)
+            ax[1].plot(lat, **kwargs)
+            ax[2].plot(lon, **kwargs)
             ax[0].set(title='Radius', xlabel='Step')
             ax[1].set(title='Latitude', xlabel='Step')
             ax[2].set(title='Longitude', xlabel='Step')
@@ -173,9 +182,9 @@ class MCMCResults(object):
         fig, ax = plt.subplots(n_spots, 3, figsize=(16, 8))
         n_bins = 200
         for i in range(self.radius.shape[1]):
-            ax[i, 0].hist(self.radius[self.burnin_int:, i], n_bins)#, alpha=0.3)
-            ax[i, 1].hist(self.lat[self.burnin_int:, i], n_bins, log=True)#, alpha=0.3)
-            ax[i, 2].hist(self.lon[self.burnin_int:, i], n_bins, log=True)#, alpha=0.3)
+            ax[i, 0].hist(self.radius[self.burnin_int:, i], n_bins, color='k')#, alpha=0.3)
+            ax[i, 1].hist(self.lat[self.burnin_int:, i], n_bins, log=True, color='k')#, alpha=0.3)
+            ax[i, 2].hist(self.lon[self.burnin_int:, i], n_bins, log=True, color='k')#, alpha=0.3)
             ax[i, 0].set_ylabel('Spot {0}'.format(i))
         ax[0, 0].set(title='Radius')
         ax[0, 1].set(title='Latitude')
@@ -226,7 +235,7 @@ class MCMCResults(object):
 
             chi2 = self.table[chain_i, 3]
             #ax.semilogx(range(len(chi2)), chi2)
-            ax.semilogx(range(len(chi2)), np.log10(chi2))
+            ax.semilogx(range(len(chi2)), np.log10(chi2), alpha=0.6)
             ax.set(xlabel='Step', ylabel=r'$\log_{10} \, \chi^2$')
 
 def plot_star(spots_spherical, fade_out=False):

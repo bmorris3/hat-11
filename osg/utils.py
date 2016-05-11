@@ -488,8 +488,15 @@ class STSPRun(object):
             # for spot in range(all_dicts['n_spots']):
             #     f.write("1.57079632679\n")
 
+
 def quadratic_to_nonlinear_ld(u1, u2):
     a1 = a3 = 0
     a2 = u1 + 2*u2
     a4 = -u2
     return (a1, a2, a3, a4)
+
+
+def load_friedrich_params():
+    j = json.load(open(os.path.join(os.path.expanduser('~'), 'git', 'friedrich',
+                                    'friedrich', 'hat11_parameters.json')))
+    return j

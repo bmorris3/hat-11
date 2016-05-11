@@ -2,36 +2,35 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import os
-from utils import (STSPRun, get_transit_parameters, quadratic_to_nonlinear_ld)
+from utils import (STSPRun, get_transit_parameters, quadratic_to_nonlinear_ld,
+                   load_friedrich_params)
 from glob import glob
 
 import sys
-sys.path.insert(0, os.path.join(os.path.expanduser('~'), '/git/friedrich'))
-from friedrich import hat11_params_morris
 import numpy as np
 
-h11 = hat11_params_morris()
-ecosw = h11.ecc * np.cos(np.radians(h11.w))
-esinw = h11.ecc * np.sin(np.radians(h11.w))
-ld_params = ' '.join(map(str, quadratic_to_nonlinear_ld(*h11.u)))
+h11 = load_friedrich_params()
+ecosw = h11['ecc'] * np.cos(np.radians(h11['w']))
+esinw = h11['ecc'] * np.sin(np.radians(h11['w']))
+ld_params = ' '.join(map(str, quadratic_to_nonlinear_ld(*h11['u'])))
 
 planet_properties = dict(n_planets=1,
-                         first_mid_transit_time=h11.t0,
-                         period=h11.per,
-                         transit_depth=h11.rp**2,
-                         transit_duration_days=h11.duration,
-                         impact_parameter=h11.b,
-                         inclination=h11.inc,
-                         orbit_lambda=h11.lam,
+                         first_mid_transit_time=h11['t0'],
+                         period=h11['per'],
+                         transit_depth=h11['rp']**2,
+                         transit_duration_days=h11['duration'],
+                         impact_parameter=h11['b'],
+                         inclination=h11['inc'],
+                         orbit_lambda=h11['lam'],
                          ecosw=ecosw,
                          esinw=esinw
                          )
 
-stellar_properties = dict(mean_stellar_density=h11.rho_star,
-                          stellar_rotation_period=h11.per_rot,
+stellar_properties = dict(mean_stellar_density=h11['rho_star'],
+                          stellar_rotation_period=h11['per_rot'],
                           stellar_temperature=4780,
                           stellar_metallicity=0,
-                          tilt_stellar_rotation_axis=90-h11.inc_stellar,
+                          tilt_stellar_rotation_axis=90-h11['inc_stellar'],
                           four_param_limb_darkening=' '.join(map(str, ld_params)),
                           n_ld_rings=40
                           )

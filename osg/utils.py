@@ -4,6 +4,7 @@ from glob import glob
 from scipy.ndimage import gaussian_filter
 import shutil
 import stat
+import json
 
 python_executable = 'python'
 falconer_path = '/home/bmorris/git/hat-11/osg/falconer.py'
@@ -486,3 +487,9 @@ class STSPRun(object):
             # For spots with fixed latitudes at the equator:
             # for spot in range(all_dicts['n_spots']):
             #     f.write("1.57079632679\n")
+
+def quadratic_to_nonlinear_ld(u1, u2):
+    a1 = a3 = 0
+    a2 = u1 + 2*u2
+    a4 = -u2
+    return (a1, a2, a3, a4)

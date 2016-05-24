@@ -46,8 +46,8 @@ n_seconds = int(n_hours*60*60)
 
 # For an unseeded run:
 action_properties = dict(random_seed=74384338,
-                         a_scale=2.5,
-                         n_chains=250,
+                         a_scale=1.25,
+                         n_chains=100,
                          n_steps=-n_seconds,
                          calc_brightness=1
                          )
@@ -77,7 +77,7 @@ if __name__ == '__main__':
                   stellar_properties=stellar_properties,
                   spot_properties=spot_properties,
                   action_properties=action_properties,
-                  n_restarts=3)
+                  n_restarts=1)
 
     run.copy_data_files(transit_paths=transit_paths, spot_param_paths=spot_param_paths)
     run.create_runs()

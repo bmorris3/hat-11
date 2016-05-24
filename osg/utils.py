@@ -407,8 +407,8 @@ class STSPRun(object):
 
 
     def write_friedrich_seeded_in_file(self, output_path, light_curve_path,
-                                       spot_param_path, spot_radius_sigma=0.05,
-                                       spot_angle_sigma=0.05):
+                                       spot_param_path, spot_radius_sigma=0.02,
+                                       spot_angle_sigma=0.02):
         """
         Parameters
         ----------
@@ -446,8 +446,7 @@ class STSPRun(object):
 
 
     def write_seeded_in_file(self, output_path, light_curve_path,
-                             seed_finalparam_path, spot_radius_sigma=0.01,
-                             spot_angle_sigma=0.02, spot_param_path=None):
+                             seed_finalparam_path, spot_param_path=None):
         """
         Parameters
         ----------
@@ -465,8 +464,8 @@ class STSPRun(object):
         light_curve = np.loadtxt(light_curve_path)
         # Seed options:
         all_dicts['action'] = 'T'
-        all_dicts['spot_radius_sigma'] = spot_radius_sigma
-        all_dicts['spot_angle_sigma'] = spot_angle_sigma
+        # all_dicts['spot_radius_sigma'] = spot_radius_sigma
+        # all_dicts['spot_angle_sigma'] = spot_angle_sigma
         all_dicts['seed_finalparam_path'] = seed_finalparam_path
 
         # Normal options:

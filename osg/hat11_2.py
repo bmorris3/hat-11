@@ -38,7 +38,9 @@ stellar_properties = dict(mean_stellar_density=h11['rho_star'],
 spot_properties = dict(lightcurve_path=None,
                        flattened_flag=1,
                        n_spots=2,
-                       fractional_spot_contrast=0.7
+                       fractional_spot_contrast=0.7,
+                       sigma_radius=0.01,
+                       sigma_angle=0.01,
                        )
 
 n_hours = 2.0

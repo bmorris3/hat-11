@@ -43,12 +43,12 @@ spot_properties = dict(lightcurve_path=None,
                        sigma_angle=0.01,
                        )
 
-n_hours = 2.0
+n_hours = 4.0
 n_seconds = int(n_hours*60*60)
 
 # For an unseeded run:
 action_properties = dict(random_seed=74384338,
-                         a_scale=2.0,
+                         a_scale=2.5,
                          n_chains=100,
                          n_steps=-n_seconds,
                          calc_brightness=1
@@ -79,7 +79,7 @@ if __name__ == '__main__':
                   stellar_properties=stellar_properties,
                   spot_properties=spot_properties,
                   action_properties=action_properties,
-                  n_restarts=1)
+                  n_restarts=5)
 
     run.copy_data_files(transit_paths=transit_paths, spot_param_paths=spot_param_paths)
     run.create_runs()

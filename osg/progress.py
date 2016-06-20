@@ -3,9 +3,9 @@ from glob import glob
 import shutil
 import numpy as np
 
-run_name = 'hat11'
+run_name = 'hat11-osg'
 
-top_level_output_dir = os.path.join('/astro/store/scratch/tmp/bmmorris/stsp_20160124/',
+top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',
                                     run_name)
                                     
 #finished_runs = glob(os.path.join(top_level_output_dir, 

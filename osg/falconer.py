@@ -117,7 +117,7 @@ def begin_new_run(output_dir_path, window_index, run_index):
 
         input_files = [i for i in [seed_finalparam_source, dat_file, in_file] if i is not None]
 
-        condor_in = dict(xsede_allocation_name = 'TG-AST150046',
+        condor_in = dict(xsede_allocation_name = 'TG-AST160036',
             initial_directory = run_dir,
             stsp_executable = '/home/bmorris/git/STSP/stsp_login',
             dot_in_file = in_file.split(os.sep)[-1],

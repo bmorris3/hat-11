@@ -101,6 +101,8 @@ class STSPRun(object):
         self.action_properties = action_properties
         self.n_restarts = n_restarts
 
+	print(self.stellar_properties['tilt_stellar_rotation_axis'])
+
         if not self.action_properties['n_chains'] % 2 == 0:
             raise ValueError("Number of walkers must be even, got {0}"
                              .format(self.action_properties['n_chains']))
@@ -384,7 +386,7 @@ class STSPRun(object):
         light_curve_path : str
             Path to input light curve
         """
-        all_dicts = self.planet_properties
+        all_dicts = dict(self.planet_properties)
         for d in [self.stellar_properties, self.spot_properties,
                   self.action_properties]:
             all_dicts.update(d)
@@ -417,7 +419,7 @@ class STSPRun(object):
         light_curve_path : str
             Path to input light curve
         """
-        all_dicts = self.planet_properties
+        all_dicts = dict(self.planet_properties)
         for d in [self.stellar_properties, self.spot_properties,
                   self.action_properties]:
             all_dicts.update(d)

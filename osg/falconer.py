@@ -7,7 +7,7 @@ import shutil
 import numpy as np
 
 local_tmp_save_dir = "/local/tmp/bmmorris/stsp_tmp/"
-stsp_executable = "/home/bmorris/git/STSP/stsp_20160125"
+stsp_executable = "/home/bmorris/git/STSP/stsp_20160816"
 #stsp_executable_astrolab = "/astro/users/bmmorris/git/STSP/bin/stsp_astrolab"
 run_name = 'hat11-osg'
 #top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',

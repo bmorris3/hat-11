@@ -21,16 +21,16 @@ planet_properties = dict(n_planets=1,
                          transit_duration_days=h11['duration'],
                          impact_parameter=h11['b'],
                          inclination=h11['inc'],
-                         orbit_lambda=h11['lam'],
+                         orbit_lambda=h11['lam'] + 180,
                          ecosw=ecosw,
                          esinw=esinw
                          )
-
+print(planet_properties['orbit_lambda'])
 stellar_properties = dict(mean_stellar_density=h11['rho_star'],
                           stellar_rotation_period=h11['per_rot'],
                           stellar_temperature=4780,
                           stellar_metallicity=0,
-                          tilt_stellar_rotation_axis=90-h11['inc_stellar'],
+                          tilt_stellar_rotation_axis=h11['inc_stellar'] + 180.0,
                           four_param_limb_darkening=ld_params,
                           n_ld_rings=40
                           )
@@ -58,17 +58,11 @@ action_properties = dict(random_seed=74384338,
 if __name__ == '__main__':
 
     run_name = 'hat11-osg'
-    executable_path = '/home/bmorris/git/STSP/stsp_20160125'
+    executable_path = '/home/bmorris/git/STSP/stsp_20160816'
     top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',
                                         run_name)
-    transit_paths = glob('/local-scratch/bmorris/hat11/friedrich/lc*.txt')
-    spot_param_paths = glob('/local-scratch/bmorris/hat11/friedrich/stsp_spots*.txt')
-
-    # executable_path = '/astro/users/bmmorris/git/STSP/stsp_20160125'
-    # top_level_output_dir = os.path.join('/local/tmp/tmp/',
-    #                                     run_name)
-    # transit_paths = glob('/local/tmp/friedrich/hat11/lc*.txt')
-    # spot_param_paths = glob('/local/tmp/friedrich/hat11/stsp_spots*.txt')
+    transit_paths = glob('/local-scratch/bmorris/hat11/friedrich/hat11/lc*.txt')
+    spot_param_paths = glob('/local-scratch/bmorris/hat11/friedrich/hat11/stsp_spots*.txt')
 
     run = STSPRun(parameter_file_path=None,
                   light_curve_path=None,

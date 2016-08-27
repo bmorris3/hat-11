@@ -39,8 +39,8 @@ spot_properties = dict(lightcurve_path=None,
                        flattened_flag=1,
                        n_spots=2,
                        fractional_spot_contrast=0.7,
-                       sigma_radius=0.005,
-                       sigma_angle=0.005,
+                       sigma_radius=0.002,
+                       sigma_angle=0.01,
                        )
 
 n_hours = 4.0
@@ -48,8 +48,8 @@ n_seconds = int(n_hours*60*60)
 
 # For an unseeded run:
 action_properties = dict(random_seed=74384338,
-                         a_scale=2.5,
-                         n_chains=200,
+                         a_scale=2.0,
+                         n_chains=300,
                          n_steps=-n_seconds,
                          calc_brightness=1
                          )

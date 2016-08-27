@@ -21,7 +21,7 @@ planet_properties = dict(n_planets=1,
                          transit_duration_days=h11['duration'],
                          impact_parameter=h11['b'],
                          inclination=h11['inc'],
-                         orbit_lambda=h11['lam'] + 180,
+                         orbit_lambda=h11['lam'],
                          ecosw=ecosw,
                          esinw=esinw
                          )
@@ -30,7 +30,7 @@ stellar_properties = dict(mean_stellar_density=h11['rho_star'],
                           stellar_rotation_period=h11['per_rot'],
                           stellar_temperature=4780,
                           stellar_metallicity=0,
-                          tilt_stellar_rotation_axis=h11['inc_stellar'] + 180.0,
+                          tilt_stellar_rotation_axis=h11['inc_stellar'],
                           four_param_limb_darkening=ld_params,
                           n_ld_rings=40
                           )

@@ -51,7 +51,7 @@ n_seconds = int(n_hours*60*60)
 
 # For an unseeded run:
 action_properties = dict(random_seed=74384338,
-                         a_scale=2.0,
+                         a_scale=1.25,
                          n_chains=300,
                          n_steps=-n_seconds,
                          calc_brightness=1

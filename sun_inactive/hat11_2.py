@@ -33,7 +33,7 @@ stellar_properties = dict(mean_stellar_density=h11['rho_star'],
                           stellar_rotation_period=h11['per_rot'],
                           stellar_temperature=4780,
                           stellar_metallicity=0,
-                          tilt_stellar_rotation_axis=h11['inc_stellar'],
+                          tilt_stellar_rotation_axis=90-h11['inc_stellar'],
                           four_param_limb_darkening=ld_params,
                           n_ld_rings=40
                           )

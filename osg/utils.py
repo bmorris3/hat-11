@@ -101,7 +101,7 @@ class STSPRun(object):
         self.action_properties = action_properties
         self.n_restarts = n_restarts
 
-	print(self.stellar_properties['tilt_stellar_rotation_axis'])
+        print(self.stellar_properties['tilt_stellar_rotation_axis'])
 
         if not self.action_properties['n_chains'] % 2 == 0:
             raise ValueError("Number of walkers must be even, got {0}"
@@ -258,20 +258,13 @@ class STSPRun(object):
         """
         # p_orb, t_0, tdur, p_rot, Rp_Rs, impact, incl_orb, Teff, sden = self.get_transit_parameters()
 
-        for transit_path in transit_paths:
-            if 'transit' in transit_path:
-                n = int(transit_path.split("transit")[-1].split(".")[0])
-            else:
-                n = int(transit_path.split("lc")[-1].split(".")[0])
-            window_dir = os.path.join(self.output_dir_path,
-                                      "window{0:03d}".format(n))
-            data_path = os.path.join(window_dir,
-                                     "window{0:03d}.dat".format(n))
-
-            if not os.path.exists(window_dir):
-                os.mkdir(window_dir)
-
-            shutil.copyfile(transit_path, data_path)
+        # for transit_path in transit_paths:
+        #     if 'transit' in transit_path:
+        #         n = int(transit_path.split("transit")[-1].split(".")[0])
+        #     else:
+        #         n = int(transit_path.split("lc")[-1].split(".")[0])
+        #     window_dir = os.path.join(self.output_dir_path,
+        #                               "window{0:03d}".format(n))
 
         for spot_path in spot_param_paths:
             n = int(spot_path.split("stsp_spots")[-1].split(".")[0])
@@ -281,6 +274,13 @@ class STSPRun(object):
             spot_param_path = os.path.join(window_dir,
                                            "stsp_spots{0:03d}.txt".format(n))
 
+            data_path = os.path.join(window_dir,
+                                     "window{0:03d}.dat".format(n))
+
+            if not os.path.exists(window_dir):
+                os.mkdir(window_dir)
+
+            shutil.copyfile(transit_path, data_path)
             shutil.copyfile(spot_path, spot_param_path)
 
         # tt, ff, ee = self.get_downsampled_data(FLATMODE=False)

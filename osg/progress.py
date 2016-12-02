@@ -41,9 +41,13 @@ def find_windows_to_continue(output_dir_path):
             current_initalized_path = os.path.join(run_dir, "initialized.txt")
 
             # If the current directory has its own finalparam.txt file, the run
-            # has been completed
+            # has been completed and its size is nonzero
             if os.path.exists(current_finalparam_path):
-                completed_runs.append(run_id)
+                finalparam_size = os.stat(current_finalparam_path).st_size
+                if finalparam_size > 0:
+                    completed_runs.append(run_id)
+                else:
+                    runs_in_progress.append(run_id)
 
             # If the current directory doesn't have its own finalparam.txt file,
             # but it has an initialized.txt file, the run is in progress

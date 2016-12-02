@@ -7,7 +7,7 @@ import shutil
 import numpy as np
 
 local_tmp_save_dir = "/local/tmp/bmmorris/stsp_tmp/"
-stsp_executable = "/home/bmorris/git/STSP/stsp_20160816"
+stsp_executable = "/home/bmorris/git/STSP/stsp_20161201"
 run_name = 'hat11-osg'
 top_level_output_dir = os.path.join('/local-scratch/bmorris/hat11/',
                                     run_name)
@@ -114,7 +114,7 @@ def begin_new_run(output_dir_path, window_index, run_index):
 
         input_files = [i for i in [seed_finalparam_source, dat_file, in_file] if i is not None]
 
-        condor_in = dict(xsede_allocation_name = 'TG-AST160036',
+        condor_in = dict(xsede_allocation_name = 'TG-AST160046',
             initial_directory = run_dir,
             stsp_executable = '/home/bmorris/git/STSP/stsp_login',
             dot_in_file = in_file.split(os.sep)[-1],

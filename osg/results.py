@@ -15,6 +15,7 @@ import numpy as np
 window_ind, run_ind = sys.argv[-2:]
 # results_dir = ('/astro/store/scratch/tmp/bmmorris/stsp/kepler17/window{0:03d}/run{1:03d}/'
 #results_dir = ('/local/tmp/osg/hat11-osg/window{0:03d}/run{1:03d}/'
+#results_dir = ('/local/tmp/osg/hat11-osg/window{0:03d}/run{1:03d}/'
 results_dir = ('/local/tmp/osg/tmp/hat11-osg/window{0:03d}/run{1:03d}/'
                .format(int(window_ind), int(run_ind)))
 #if not os.path.exists(results_dir):
